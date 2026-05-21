@@ -519,6 +519,22 @@ function buildHistoryItems(moves, currentIndex) {
   return items;
 }
 
+function legalTargetsForSquare(game, square) {
+  if (!game || !square) return [];
+
+  try {
+    return game.moves({ square, verbose: true }).map((move) => move.to);
+  } catch {
+    return [];
+  }
+}
+
+function pieceTypeColor(piece) {
+  const pieceType = typeof piece === "string" ? piece : piece?.pieceType;
+  if (!pieceType) return null;
+  return pieceType[0] === "w" ? "White" : "Black";
+}
+
 function formatLineWithMoveNumbers(moves) {
   const parts = [];
   for (let i = 0; i < moves.length; i += 2) {
@@ -1697,7 +1713,19 @@ export default function App() {
     const sourceSquare = typeof firstArg === "object" ? firstArg.sourceSquare : firstArg;
     const targetSquare = typeof firstArg === "object" ? firstArg.targetSquare : secondArg;
     if (!sourceSquare || !targetSquare) return false;
+    setSelectedSquare(null);
     return tryPlayerMove(sourceSquare, targetSquare);
+  }
+
+  function handlePieceDrag(firstArg, secondArg) {
+    if (showAnswer || previewFen || isReviewing) return;
+
+    const sourceSquare = typeof firstArg === "object" ? firstArg.square : secondArg;
+    if (!sourceSquare) return;
+
+    if (isDraggablePiece(firstArg, secondArg)) {
+      setSelectedSquare(sourceSquare);
+    }
   }
 
   function isDraggablePiece(firstArg, secondArg) {
@@ -1712,8 +1740,8 @@ export default function App() {
       }
 
       if (piece) {
-        const pieceColor = piece[0] === "w" ? "w" : "b";
-        return pieceColor === shownGame.turn();
+        const pieceColor = pieceTypeColor(piece);
+        return pieceColor === (shownGame.turn() === "w" ? "White" : "Black");
       }
 
       return false;
@@ -1724,7 +1752,7 @@ export default function App() {
     const sourceSquare = typeof firstArg === "object" ? firstArg.sourceSquare : secondArg;
 
     if (piece) {
-      const pieceColor = piece[0] === "w" ? "White" : "Black";
+      const pieceColor = pieceTypeColor(piece);
       return pieceColor === quizSide;
     }
 
@@ -1738,16 +1766,32 @@ export default function App() {
     return false;
   }
 
-  const squareStyles = selectedSquare
-    ? { [selectedSquare]: { background: "rgba(250, 204, 21, 0.55)" } }
-    : {};
+  const legalMoveGame = extensionMode || freePlayMode ? shownGame : game;
+  const legalTargetSquares = selectedSquare
+    ? legalTargetsForSquare(legalMoveGame, selectedSquare)
+    : [];
+  const squareStyles = {
+    ...(selectedSquare ? { [selectedSquare]: { backgroundColor: "rgba(250, 204, 21, 0.55)" } } : {}),
+    ...legalTargetSquares.reduce((styles, square) => {
+      const hasPiece = !!legalMoveGame.get(square);
+      styles[square] = {
+        ...(styles[square] || {}),
+        backgroundImage: hasPiece
+          ? "radial-gradient(circle, transparent 58%, rgba(15, 23, 42, 0.42) 60%, rgba(15, 23, 42, 0.42) 68%, transparent 70%)"
+          : "radial-gradient(circle, rgba(15, 23, 42, 0.38) 18%, transparent 20%)",
+      };
+      return styles;
+    }, {}),
+  };
 
   const chessboardOptions = {
     id: "line-memorizer-board",
     position: shownFen,
     boardOrientation: quizSide === "White" ? "white" : "black",
     onPieceDrop: handlePieceDrop,
+    onPieceDrag: handlePieceDrag,
     onSquareClick: handleSquareClick,
+    canDragPiece: isDraggablePiece,
     isDraggablePiece,
     squareStyles,
     animationDurationInMs: 320,
