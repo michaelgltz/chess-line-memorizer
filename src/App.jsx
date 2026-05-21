@@ -13,7 +13,6 @@ const OPENINGS = [
   {
     id: "englund-white",
     name: "Englund Gambit Refutation",
-    side: "White",
     description: "Train White's main responses against common Englund ideas.",
     variations: [
       {
@@ -52,7 +51,6 @@ const OPENINGS = [
   {
     id: "london-white",
     name: "London System",
-    side: "White",
     description: "Practice common London structures and move orders.",
     variations: [
       {
@@ -82,8 +80,7 @@ const OPENINGS = [
   },
   {
     id: "ruy-lopez-white",
-    name: "Ruy Lopez as White",
-    side: "White",
+    name: "Ruy Lopez",
     description: "Train classical Spanish positions from the main line, Berlin, and Exchange structures.",
     variations: [
       {
@@ -113,8 +110,7 @@ const OPENINGS = [
   },
   {
     id: "italian-white",
-    name: "Italian Game as White",
-    side: "White",
+    name: "Italian Game",
     description: "Practice flexible Italian setups, Two Knights move orders, and the Evans Gambit.",
     variations: [
       {
@@ -144,8 +140,7 @@ const OPENINGS = [
   },
   {
     id: "queens-gambit-white",
-    name: "Queen's Gambit as White",
-    side: "White",
+    name: "Queen's Gambit",
     description: "Practice Queen's Gambit structures against declined, accepted, and Albin setups.",
     variations: [
       {
@@ -175,8 +170,7 @@ const OPENINGS = [
   },
   {
     id: "sicilian-black",
-    name: "Sicilian Defense as Black",
-    side: "Black",
+    name: "Sicilian Defense",
     description: "Practice a few common Black replies in open Sicilian structures.",
     variations: [
       {
@@ -198,8 +192,7 @@ const OPENINGS = [
   },
   {
     id: "caro-kann-black",
-    name: "Caro-Kann Defense as Black",
-    side: "Black",
+    name: "Caro-Kann Defense",
     description: "Train reliable Caro-Kann structures against Advance, Classical, and Panov systems.",
     variations: [
       {
@@ -228,9 +221,38 @@ const OPENINGS = [
     ],
   },
   {
+    id: "scandinavian-defense",
+    name: "Scandinavian Defense",
+    description: "Practice Scandinavian structures with the main queen line, Modern setup, and Portuguese-style development.",
+    variations: [
+      {
+        name: "Main line with ...Qa5",
+        line: `1. e4 d5 2. exd5 Qxd5 3. Nc3 Qa5 4. d4 Nf6 5. Nf3 c6 6. Bc4 Bf5 7. O-O e6`,
+        explanations: {
+          5: {
+            "qd8": {
+              title: "Qa5 keeps active pressure.",
+              text: "The main Scandinavian queen line uses ...Qa5 to keep an eye on c3 and support quick development. Retreating all the way to d8 is playable, but it is a different, quieter system.",
+              seeLine: `2. exd5 Qxd5 3. Nc3 Qa5 4. d4 Nf6`,
+            },
+          },
+        },
+      },
+      {
+        name: "Modern Scandinavian",
+        line: `1. e4 d5 2. exd5 Nf6 3. d4 Nxd5 4. c4 Nb6 5. Nc3 g6 6. Be3 Bg7 7. Rc1 O-O`,
+        explanations: {},
+      },
+      {
+        name: "Portuguese variation",
+        line: `1. e4 d5 2. exd5 Nf6 3. d4 Bg4 4. f3 Bf5 5. c4 e6 6. dxe6 Nc6 7. exf7+ Kxf7`,
+        explanations: {},
+      },
+    ],
+  },
+  {
     id: "french-black",
-    name: "French Defense as Black",
-    side: "Black",
+    name: "French Defense",
     description: "Practice French Defense pawn-chain play against Advance, Tarrasch, and Winawer lines.",
     variations: [
       {
@@ -260,8 +282,7 @@ const OPENINGS = [
   },
   {
     id: "kings-indian-black",
-    name: "King's Indian Defense as Black",
-    side: "Black",
+    name: "King's Indian Defense",
     description: "Practice King's Indian setups against Classical, Fianchetto, and Saemisch systems.",
     variations: [
       {
@@ -291,8 +312,7 @@ const OPENINGS = [
   },
   {
     id: "nimzo-indian-black",
-    name: "Nimzo-Indian Defense as Black",
-    side: "Black",
+    name: "Nimzo-Indian Defense",
     description: "Train Nimzo-Indian development against Rubinstein, Classical, and Leningrad setups.",
     variations: [
       {
@@ -322,8 +342,7 @@ const OPENINGS = [
   },
   {
     id: "english-white",
-    name: "English Opening as White",
-    side: "White",
+    name: "English Opening",
     description: "Practice English Opening structures with kingside fianchetto and flexible central play.",
     variations: [
       {
@@ -353,8 +372,7 @@ const OPENINGS = [
   },
   {
     id: "sicilian-white",
-    name: "Sicilian Najdorf Response as White",
-    side: "White",
+    name: "Sicilian Najdorf Response",
     description: "Practice White's response after Black plays ...a6 in the Sicilian.",
     variations: [
       {
@@ -824,7 +842,7 @@ export default function App() {
   const [selectedOpeningId, setSelectedOpeningId] = useState(OPENINGS[0].id);
   const [selectedVariationIndex, setSelectedVariationIndex] = useState(0);
   const [customLineText, setCustomLineText] = useState(OPENINGS[0].variations[0].line);
-  const [quizSide, setQuizSide] = useState(OPENINGS[0].side);
+  const [quizSide, setQuizSide] = useState("White");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [viewIndex, setViewIndex] = useState(null);
   const [feedback, setFeedback] = useState(null);
@@ -1093,7 +1111,6 @@ export default function App() {
     setSelectedOpeningId(nextOpening.id);
     const nextVariations = [...(nextOpening.variations || []), ...(savedVariations[nextOpening.id] || [])];
     setSelectedVariationIndex(randomIndex(nextVariations.length));
-    setQuizSide(nextOpening.side);
     setShowCustomEditor(false);
     setCurrentIndex(0);
     setViewIndex(null);
@@ -1700,7 +1717,7 @@ export default function App() {
         <div className="practice-header clean-practice-header">
           <div className="practice-title-block">
             <h2>Practice...</h2>
-            <p className="muted">Choose an opening, then drill a main line or a random saved variation.</p>
+            <p className="muted">Choose an opening and which color to play, then drill a main line or a random saved variation.</p>
           </div>
         </div>
 
@@ -1729,13 +1746,13 @@ export default function App() {
             <option value="custom">Custom Line</option>
           </select>
           <p className="opening-select-description">
-            {selectedOpeningId === "custom" ? "Paste any PGN-style move sequence and train either side." : selectedOpening.description}
+            {selectedOpeningId === "custom" ? "Paste any PGN-style move sequence and play either color." : selectedOpening.description}
           </p>
         </div>
 
         {selectedOpeningId !== "custom" && (
           <div className="opening-side-selector">
-            <span>Play as</span>
+            <span>Play color</span>
             <button
               className={quizSide === "White" ? "active" : ""}
               onClick={() => {
@@ -1833,10 +1850,10 @@ export default function App() {
             />
             <div className="button-row">
               <button className={quizSide === "White" ? "active" : ""} onClick={() => setQuizSide("White")}>
-                Train White
+                Play White
               </button>
               <button className={quizSide === "Black" ? "active" : ""} onClick={() => setQuizSide("Black")}>
-                Train Black
+                Play Black
               </button>
             </div>
           </div>
@@ -1859,7 +1876,7 @@ export default function App() {
             </div>
 
             <div className="side-row">
-              <span className="pill">Training {quizSide}</span>
+              <span className="pill">Playing {quizSide}</span>
               <span className="pill muted-pill">Move {Math.min(currentIndex + 1, moves.length || 1)} of {moves.length}</span>
               {isReviewing && <button className="small-button" onClick={clearReview}>Return to current position</button>}
             </div>
