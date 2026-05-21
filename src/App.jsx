@@ -520,6 +520,23 @@ function chooseTreeContinuation(variationEntries, edge, { randomize = false, pre
   return entry ? { index: chosenIndex, moves: entry.moves } : null;
 }
 
+function summarizeTreeBranches(node, variationEntries) {
+  if (!node?.children?.length) return [];
+
+  return node.children.map((edge) => {
+    const sourceLabels = edge.variationIndices
+      .map((index) => variationEntries[index]?.variation?.saved ? "saved" : "built-in");
+    const hasSaved = sourceLabels.includes("saved");
+    const hasBuiltIn = sourceLabels.includes("built-in");
+
+    return {
+      san: edge.san,
+      count: edge.variationIndices.length,
+      source: hasSaved && hasBuiltIn ? "built-in + saved" : hasSaved ? "saved" : "built-in",
+    };
+  });
+}
+
 function randomIndex(length) {
   return Math.floor(Math.random() * length);
 }
@@ -1049,6 +1066,14 @@ export default function App() {
   const progress = moves.length ? Math.round((Math.min(currentIndex, moves.length) / moves.length) * 100) : 0;
   const evalHeight = whiteEvalHeight(engineEval);
   const historyItems = buildHistoryItems(moves, currentIndex);
+  const reviewTreeNode = useMemo(() => (
+    selectedOpeningId === "custom" || viewIndex === null ? null : findMoveTreeNode(moveTree, moves.slice(0, viewIndex))
+  ), [moveTree, moves, selectedOpeningId, viewIndex]);
+  const branchSummary = useMemo(() => {
+    const shouldRevealCurrentBranches = !!feedback || showAnswer || isDone;
+    const sourceNode = reviewTreeNode || (shouldRevealCurrentBranches ? currentTreeNode : null);
+    return summarizeTreeBranches(sourceNode, variationEntries);
+  }, [currentTreeNode, feedback, isDone, reviewTreeNode, showAnswer, variationEntries]);
 
   useEffect(() => {
     const worker = new Worker(STOCKFISH_PATH);
@@ -2094,6 +2119,7 @@ export default function App() {
             currentIndex={currentIndex}
             currentMove={currentMove}
             currentSide={currentSide}
+            branchSummary={branchSummary}
             dynamicAnalysis={dynamicAnalysis}
             dynamicAnalysisStatus={dynamicAnalysisStatus}
             extensionBaseMoves={extensionBaseMoves}

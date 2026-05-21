@@ -1,4 +1,5 @@
 export default function CurrentLineCard({
+  branchSummary,
   currentIndex,
   currentMove,
   currentSide,
@@ -228,7 +229,11 @@ export default function CurrentLineCard({
         ) : !isQuizTurn ? (
           <div className="opponent-box"><p>Opponent to move. {opponentThinking ? "Thinking..." : "Playing move..."}</p></div>
         ) : isReviewing ? (
-          <div className="answer-box"><p>You are reviewing a past position.</p><button onClick={onClearReview}>Return to current position</button></div>
+          <div className="answer-box">
+            <p>You are reviewing a past position.</p>
+            {branchSummary.length > 1 && <BranchSummary branches={branchSummary} />}
+            <button onClick={onClearReview}>Return to current position</button>
+          </div>
         ) : (
           <div className="answer-box">
             <p>Your move: <strong>Move {moveNumberForIndex(currentIndex)} for {currentSide}</strong></p>
@@ -248,6 +253,7 @@ export default function CurrentLineCard({
           <div className={`feedback ${feedback.type}`}>
             {feedback.text}
             {feedback.explanation?.text && <p>{feedback.explanation.text}</p>}
+            {branchSummary.length > 1 && <BranchSummary branches={branchSummary} />}
             {dynamicAnalysisStatus === "loading" && <p>Analyzing with Stockfish...</p>}
             {dynamicAnalysisStatus === "unavailable" && <p>Dynamic analysis unavailable for this move.</p>}
             {dynamicAnalysisStatus === "ready" && dynamicAnalysis && (
@@ -278,6 +284,22 @@ export default function CurrentLineCard({
             )}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function BranchSummary({ branches }) {
+  return (
+    <div className="branch-summary">
+      <strong>Trained branches from this position</strong>
+      <div className="branch-summary-list">
+        {branches.map((branch) => (
+          <span key={`${branch.san}-${branch.source}`} className="branch-chip">
+            {branch.san}
+            <small>{branch.count} line{branch.count === 1 ? "" : "s"} · {branch.source}</small>
+          </span>
+        ))}
       </div>
     </div>
   );
