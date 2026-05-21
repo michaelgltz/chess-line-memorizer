@@ -2,17 +2,26 @@ export default function VariationManager({
   openingName,
   savedForOpening,
   selectedOpeningId,
+  editingVariationIndex,
+  editingVariationName,
+  editingVariationLine,
   manualVariationName,
   manualVariationLine,
   onAddManualVariation,
+  onCancelEditingSavedVariation,
   onClearAllSavedVariations,
   onClearSavedVariationsForOpening,
   onDeleteSavedVariation,
+  onDuplicateSavedVariation,
+  onEditingVariationNameChange,
+  onEditingVariationLineChange,
   onExportSavedVariations,
   onImportSavedVariations,
   onManualVariationLineChange,
   onManualVariationNameChange,
+  onSaveEditedVariation,
   onSelectSavedVariation,
+  onStartEditingSavedVariation,
 }) {
   return (
     <div className="variation-manager">
@@ -42,14 +51,38 @@ export default function VariationManager({
             <div className="saved-variation-list">
               {savedForOpening.map((variation, index) => (
                 <div key={`${variation.line}-${index}`} className="saved-variation-item">
-                  <div>
-                    <strong>{variation.name}</strong>
-                    <code>{variation.line}</code>
-                  </div>
-                  <div className="saved-variation-actions">
-                    <button type="button" onClick={() => onSelectSavedVariation(index)}>Practice</button>
-                    <button type="button" className="danger-utility" onClick={() => onDeleteSavedVariation(selectedOpeningId, index)}>Delete</button>
-                  </div>
+                  {editingVariationIndex === index ? (
+                    <div className="saved-variation-edit">
+                      <label>Variation name</label>
+                      <input
+                        value={editingVariationName}
+                        onChange={(event) => onEditingVariationNameChange(event.target.value)}
+                      />
+                      <label>PGN-style line</label>
+                      <textarea
+                        value={editingVariationLine}
+                        onChange={(event) => onEditingVariationLineChange(event.target.value)}
+                        rows={4}
+                      />
+                      <div className="saved-variation-actions">
+                        <button type="button" onClick={onSaveEditedVariation}>Save changes</button>
+                        <button type="button" onClick={onCancelEditingSavedVariation}>Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div>
+                        <strong>{variation.name}</strong>
+                        <code>{variation.line}</code>
+                      </div>
+                      <div className="saved-variation-actions">
+                        <button type="button" onClick={() => onSelectSavedVariation(index)}>Practice</button>
+                        <button type="button" onClick={() => onStartEditingSavedVariation(index)}>Edit</button>
+                        <button type="button" onClick={() => onDuplicateSavedVariation(index)}>Duplicate</button>
+                        <button type="button" className="danger-utility" onClick={() => onDeleteSavedVariation(selectedOpeningId, index)}>Delete</button>
+                      </div>
+                    </>
+                  )}
                 </div>
               ))}
             </div>

@@ -2,6 +2,9 @@ import VariationManager from "./VariationManager.jsx";
 
 export default function PracticePanel({
   customLineText,
+  editingVariationIndex,
+  editingVariationLine,
+  editingVariationName,
   manualVariationLine,
   manualVariationName,
   openings,
@@ -16,15 +19,21 @@ export default function PracticePanel({
   onClearAllSavedVariations,
   onClearSavedVariationsForOpening,
   onCustomLineTextChange,
+  onCancelEditingSavedVariation,
   onDeleteSavedVariation,
+  onDuplicateSavedVariation,
+  onEditingVariationLineChange,
+  onEditingVariationNameChange,
   onExportSavedVariations,
   onImportSavedVariations,
   onManualVariationLineChange,
   onManualVariationNameChange,
   onResetMainLine,
   onResetQuiz,
+  onSaveEditedVariation,
   onSelectSavedVariation,
   onSetQuizSide,
+  onStartEditingSavedVariation,
   onToggleVariationManager,
 }) {
   return (
@@ -94,17 +103,26 @@ export default function PracticePanel({
           openingName={selectedOpening.name}
           savedForOpening={savedForOpening}
           selectedOpeningId={selectedOpeningId}
+          editingVariationIndex={editingVariationIndex}
+          editingVariationName={editingVariationName}
+          editingVariationLine={editingVariationLine}
           manualVariationName={manualVariationName}
           manualVariationLine={manualVariationLine}
           onAddManualVariation={onAddManualVariation}
+          onCancelEditingSavedVariation={onCancelEditingSavedVariation}
           onClearAllSavedVariations={onClearAllSavedVariations}
           onClearSavedVariationsForOpening={onClearSavedVariationsForOpening}
           onDeleteSavedVariation={onDeleteSavedVariation}
+          onDuplicateSavedVariation={onDuplicateSavedVariation}
+          onEditingVariationLineChange={onEditingVariationLineChange}
+          onEditingVariationNameChange={onEditingVariationNameChange}
           onExportSavedVariations={onExportSavedVariations}
           onImportSavedVariations={onImportSavedVariations}
           onManualVariationLineChange={onManualVariationLineChange}
           onManualVariationNameChange={onManualVariationNameChange}
+          onSaveEditedVariation={onSaveEditedVariation}
           onSelectSavedVariation={onSelectSavedVariation}
+          onStartEditingSavedVariation={onStartEditingSavedVariation}
         />
       )}
 

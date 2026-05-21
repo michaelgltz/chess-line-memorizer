@@ -891,6 +891,9 @@ export default function App() {
   const [showVariationManager, setShowVariationManager] = useState(false);
   const [manualVariationName, setManualVariationName] = useState("");
   const [manualVariationLine, setManualVariationLine] = useState("");
+  const [editingVariationIndex, setEditingVariationIndex] = useState(null);
+  const [editingVariationName, setEditingVariationName] = useState("");
+  const [editingVariationLine, setEditingVariationLine] = useState("");
   const [extensionMoveMode, setExtensionMoveMode] = useState("top3");
   const [extensionThresholdCp, setExtensionThresholdCp] = useState(75);
   const [extensionTopMoves, setExtensionTopMoves] = useState([]);
@@ -1233,6 +1236,84 @@ export default function App() {
     setManualVariationName("");
     setManualVariationLine("");
     setFeedback({ type: "correct", text: `Added saved variation: ${name}` });
+  }
+
+  function startEditingSavedVariation(variationIndex) {
+    const variation = savedForOpening[variationIndex];
+    if (!variation) return;
+
+    setEditingVariationIndex(variationIndex);
+    setEditingVariationName(variation.name || "");
+    setEditingVariationLine(variation.line || "");
+  }
+
+  function cancelEditingSavedVariation() {
+    setEditingVariationIndex(null);
+    setEditingVariationName("");
+    setEditingVariationLine("");
+  }
+
+  function saveEditedVariation() {
+    if (selectedOpeningId === "custom" || editingVariationIndex === null) return;
+
+    const name = editingVariationName.trim() || `Saved variation ${editingVariationIndex + 1}`;
+    const line = editingVariationLine.trim();
+
+    if (!line) {
+      setFeedback({ type: "wrong", text: "Variation line cannot be empty." });
+      return;
+    }
+
+    try {
+      const testMoves = parseMoves(line);
+      makeGameAtMove(testMoves, testMoves.length);
+    } catch {
+      setFeedback({ type: "wrong", text: "That edited line could not be parsed. Check the move order and notation." });
+      return;
+    }
+
+    setSavedVariations((prev) => {
+      const existing = prev[selectedOpeningId] || [];
+      const nextForOpening = existing.map((variation, index) => (
+        index === editingVariationIndex
+          ? {
+              ...variation,
+              name,
+              line,
+              updatedAt: new Date().toISOString(),
+            }
+          : variation
+      ));
+
+      return {
+        ...prev,
+        [selectedOpeningId]: nextForOpening,
+      };
+    });
+
+    cancelEditingSavedVariation();
+    setFeedback({ type: "correct", text: `Updated saved variation: ${name}` });
+  }
+
+  function duplicateSavedVariation(variationIndex) {
+    if (selectedOpeningId === "custom") return;
+    const variation = savedForOpening[variationIndex];
+    if (!variation) return;
+
+    const copy = {
+      ...variation,
+      name: `${variation.name || "Saved variation"} copy`,
+      saved: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: undefined,
+    };
+
+    setSavedVariations((prev) => ({
+      ...prev,
+      [selectedOpeningId]: [...(prev[selectedOpeningId] || []), copy],
+    }));
+
+    setFeedback({ type: "correct", text: `Duplicated saved variation: ${copy.name}` });
   }
 
   function selectSavedVariation(variationIndex) {
@@ -1848,6 +1929,9 @@ export default function App() {
         customLineText={customLineText}
         manualVariationLine={manualVariationLine}
         manualVariationName={manualVariationName}
+        editingVariationIndex={editingVariationIndex}
+        editingVariationLine={editingVariationLine}
+        editingVariationName={editingVariationName}
         openings={OPENINGS}
         quizSide={quizSide}
         savedForOpening={savedForOpening}
@@ -1861,14 +1945,20 @@ export default function App() {
         onClearSavedVariationsForOpening={clearSavedVariationsForOpening}
         onCustomLineTextChange={setCustomLineText}
         onDeleteSavedVariation={deleteSavedVariation}
+        onDuplicateSavedVariation={duplicateSavedVariation}
+        onCancelEditingSavedVariation={cancelEditingSavedVariation}
         onExportSavedVariations={exportSavedVariations}
         onImportSavedVariations={importSavedVariations}
+        onSaveEditedVariation={saveEditedVariation}
+        onEditingVariationLineChange={setEditingVariationLine}
+        onEditingVariationNameChange={setEditingVariationName}
         onManualVariationLineChange={setManualVariationLine}
         onManualVariationNameChange={setManualVariationName}
         onResetMainLine={resetToMainLine}
         onResetQuiz={resetQuiz}
         onSelectSavedVariation={selectSavedVariation}
         onSetQuizSide={setQuizSide}
+        onStartEditingSavedVariation={startEditingSavedVariation}
         onToggleVariationManager={() => setShowVariationManager((value) => !value)}
       />
 

@@ -842,6 +842,15 @@ textarea {
   flex-wrap: wrap;
 }
 
+.saved-variation-edit {
+  display: grid;
+  gap: 8px;
+}
+
+.saved-variation-edit label {
+  margin: 0;
+}
+
 /* ==========================================================================
    13. Tablet responsive rules
    ========================================================================== */
