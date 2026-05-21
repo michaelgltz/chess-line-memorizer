@@ -891,3 +891,60 @@ textarea {
     max-height: calc(100vw - 72px);
   }
 }
+
+/* Mobile board centering + stability */
+@media (max-width: 700px) {
+  .board-card {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .board-with-eval {
+    width: 100%;
+    align-items: center;
+  }
+
+  .eval-wrap {
+    height: 100%;
+    align-self: stretch;
+  }
+
+  .board-shell {
+    align-self: center;
+    margin: auto 0;
+  }
+
+  .layout {
+    gap: 16px;
+  }
+
+  .practice-panel,
+  .card,
+  .board-card {
+    margin-bottom: 16px;
+  }
+
+  .quiz-header {
+    min-height: 92px;
+  }
+
+  .moves-box {
+    min-height: 120px;
+    max-height: 160px;
+  }
+
+  .status-area {
+    min-height: 150px;
+  }
+
+  .feedback-area {
+    min-height: 120px;
+  }
+
+  .answer-box,
+  .opponent-box,
+  .success-box {
+    min-height: 112px;
+  }
+}
