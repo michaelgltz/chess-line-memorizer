@@ -1667,8 +1667,9 @@ export default function App() {
     if (!square || showAnswer || previewFen || isReviewing) return;
 
     if (extensionMode || freePlayMode) {
+      const piece = shownGame.get(square);
+
       if (!selectedSquare) {
-        const piece = shownGame.get(square);
         if (!piece) return;
         if (piece.color !== shownGame.turn()) return;
         setSelectedSquare(square);
@@ -1676,6 +1677,17 @@ export default function App() {
       }
 
       if (selectedSquare === square) {
+        setSelectedSquare(null);
+        return;
+      }
+
+      const legalTargets = legalTargetsForSquare(shownGame, selectedSquare);
+      if (!legalTargets.includes(square)) {
+        if (piece?.color === shownGame.turn()) {
+          setSelectedSquare(square);
+          return;
+        }
+
         setSelectedSquare(null);
         return;
       }
@@ -1691,8 +1703,9 @@ export default function App() {
 
     if (!isQuizTurn || isDone) return;
 
+    const piece = game.get(square);
+
     if (!selectedSquare) {
-      const piece = game.get(square);
       if (!piece) return;
       const pieceColor = piece.color === "w" ? "White" : "Black";
       if (pieceColor !== quizSide) return;
@@ -1701,6 +1714,18 @@ export default function App() {
     }
 
     if (selectedSquare === square) {
+      setSelectedSquare(null);
+      return;
+    }
+
+    const legalTargets = legalTargetsForSquare(game, selectedSquare);
+    if (!legalTargets.includes(square)) {
+      const pieceColor = piece?.color === "w" ? "White" : "Black";
+      if (piece && pieceColor === quizSide) {
+        setSelectedSquare(square);
+        return;
+      }
+
       setSelectedSquare(null);
       return;
     }
@@ -1714,6 +1739,13 @@ export default function App() {
     const targetSquare = typeof firstArg === "object" ? firstArg.targetSquare : secondArg;
     if (!sourceSquare || !targetSquare) return false;
     setSelectedSquare(null);
+
+    if (sourceSquare === targetSquare) return true;
+
+    const dropGame = extensionMode || freePlayMode ? shownGame : game;
+    const legalTargets = legalTargetsForSquare(dropGame, sourceSquare);
+    if (!legalTargets.includes(targetSquare)) return false;
+
     return tryPlayerMove(sourceSquare, targetSquare);
   }
 
