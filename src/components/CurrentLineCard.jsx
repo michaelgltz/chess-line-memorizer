@@ -150,7 +150,7 @@ export default function CurrentLineCard({
                 className={extensionMoveMode === "top3" ? "active" : ""}
                 onClick={() => onSetExtensionMoveMode("top3")}
               >
-                Top 3 moves
+                Within range
               </button>
               <label className="threshold-control">
                 Within
@@ -169,7 +169,7 @@ export default function CurrentLineCard({
               </label>
             </div>
             <div className="extension-top-moves">
-              <strong>Current Stockfish options</strong>
+              <strong>Reference Stockfish options</strong>
               {extensionTopMoveStatus === "loading" && <p>Analyzing accepted moves...</p>}
               {extensionTopMoveStatus === "unavailable" && <p>No engine move list available yet.</p>}
               {extensionTopMoveStatus === "ready" && (

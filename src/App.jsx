@@ -589,6 +589,10 @@ function scoreToComparableNumber(score) {
   return null;
 }
 
+function formatThresholdPawns(thresholdCp) {
+  return (thresholdCp / 100).toFixed(2);
+}
+
 function filterTopMovesByThreshold(topMoves, thresholdCp) {
   if (!topMoves?.length) return [];
   const topScore = scoreToComparableNumber(topMoves[0]);
@@ -1438,16 +1442,61 @@ export default function App() {
     const allowedSanMoves = allowedMoves.map((entry) => uciToSan(currentFen, entry.bestMove) || entry.bestMove);
 
     if (!allowedUciMoves.includes(playedUci)) {
-      setFeedback({
-        type: "wrong",
-        text: `Extension mode accepts ${extensionMoveMode === "top1" ? "only the top Stockfish move" : "one of Stockfish's top 3 moves"}. You played ${move.san}; accepted moves: ${allowedSanMoves.join(", ")}.`,
-      });
+      if (extensionMoveMode === "top1") {
+        setFeedback({
+          type: "wrong",
+          text: `Extension mode accepts only the top Stockfish move. You played ${move.san}; accepted move: ${allowedSanMoves.join(", ")}.`,
+        });
+        return false;
+      }
+
+      const topScore = scoreToComparableNumber(extensionTopMoves[0]);
+      if (topScore === null) {
+        setFeedback({ type: "wrong", text: "Stockfish did not return a usable score for this position yet. Try again after the move list refreshes." });
+        return false;
+      }
+
+      const playedSan = move.san;
+      const afterFen = extensionGame.fen();
+      setFeedback({ type: "correct", text: `Checking ${playedSan} against the ${formatThresholdPawns(extensionThresholdCp)} pawn range...` });
+      setSelectedSquare(null);
+
+      analyzeFenWithTemporaryStockfish(afterFen, ENGINE_DEPTH)
+        .then((rawScore) => {
+          const replyScore = scoreToComparableNumber(rawScore);
+          const playedScore = replyScore === null ? null : -replyScore;
+
+          if (playedScore === null) {
+            setFeedback({ type: "wrong", text: `Stockfish could not score ${playedSan}. Try one of the listed moves: ${allowedSanMoves.join(", ")}.` });
+            return;
+          }
+
+          const gap = topScore - playedScore;
+          if (gap <= extensionThresholdCp) {
+            setExtensionFen(afterFen);
+            setExtensionMoves((prev) => [...prev, playedSan]);
+            setFeedback({
+              type: "correct",
+              text: `Added ${playedSan} to the extension. It is within ${formatThresholdPawns(extensionThresholdCp)} pawns of Stockfish's best move.`,
+            });
+            return;
+          }
+
+          setFeedback({
+            type: "wrong",
+            text: `${playedSan} is legal, but it is about ${(gap / 100).toFixed(2)} pawns worse than Stockfish's best move. Current range: ${formatThresholdPawns(extensionThresholdCp)} pawns.`,
+          });
+        })
+        .catch(() => {
+          setFeedback({ type: "wrong", text: `Could not analyze ${playedSan}. Try one of the listed moves: ${allowedSanMoves.join(", ")}.` });
+        });
+
       return false;
     }
 
     setExtensionFen(extensionGame.fen());
     setExtensionMoves((prev) => [...prev, move.san]);
-    setFeedback({ type: "correct", text: `Added top move to extension: ${move.san}` });
+    setFeedback({ type: "correct", text: `Added accepted move to extension: ${move.san}` });
     setSelectedSquare(null);
     return true;
   }
