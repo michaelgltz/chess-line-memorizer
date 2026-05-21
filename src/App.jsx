@@ -1,6 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Chess } from "chess.js";
-import { Chessboard } from "react-chessboard";
+import BoardWithEval from "./components/BoardWithEval.jsx";
+import CurrentLineCard from "./components/CurrentLineCard.jsx";
+import MistakeReview from "./components/MistakeReview.jsx";
+import PracticePanel from "./components/PracticePanel.jsx";
 import "./App.css";
 
 const STOCKFISH_PATH = "/stockfish/stockfish-18-lite-single.js";
@@ -1703,6 +1706,9 @@ export default function App() {
     showNotation: true,
     showBoardNotation: true,
   };
+  const filteredExtensionTopMoves = extensionMoveMode === "top1"
+    ? extensionTopMoves.slice(0, 1)
+    : filterTopMovesByThreshold(extensionTopMoves, extensionThresholdCp).slice(0, 3);
 
   return (
     <main className="app">
@@ -1713,423 +1719,102 @@ export default function App() {
         </div>
       </section>
 
-      <section className="practice-panel card">
-        <div className="practice-header clean-practice-header">
-          <div className="practice-title-block">
-            <h2>Practice...</h2>
-            <p className="muted">Choose an opening and which color to play, then drill a main line or a random saved variation.</p>
-          </div>
-        </div>
-
-        <div className="practice-actions refined-actions">
-          <button className="primary-action" onClick={resetToMainLine}>Restart main line</button>
-          <button onClick={() => resetQuiz(true)}>Restart random variation</button>
-          <div className="utility-actions">
-            <button className="utility-button" onClick={() => setShowVariationManager((value) => !value)}>
-              {showVariationManager ? "Hide manager" : "Variation manager"}
-            </button>
-          </div>
-        </div>
-
-        <div className="opening-select-row">
-          <label htmlFor="opening-select">Opening</label>
-          <select
-            id="opening-select"
-            value={selectedOpeningId}
-            onChange={(e) => chooseOpening(e.target.value)}
-          >
-            {OPENINGS.map((opening) => (
-              <option key={opening.id} value={opening.id}>
-                {opening.name}
-              </option>
-            ))}
-            <option value="custom">Custom Line</option>
-          </select>
-          <p className="opening-select-description">
-            {selectedOpeningId === "custom" ? "Paste any PGN-style move sequence and play either color." : selectedOpening.description}
-          </p>
-        </div>
-
-        {selectedOpeningId !== "custom" && (
-          <div className="opening-side-selector">
-            <span>Play color</span>
-            <button
-              className={quizSide === "White" ? "active" : ""}
-              onClick={() => {
-                setQuizSide("White");
-                resetQuiz(true);
-              }}
-            >
-              White
-            </button>
-            <button
-              className={quizSide === "Black" ? "active" : ""}
-              onClick={() => {
-                setQuizSide("Black");
-                resetQuiz(true);
-              }}
-            >
-              Black
-            </button>
-          </div>
-        )}
-
-        {showVariationManager && selectedOpeningId !== "custom" && (
-          <div className="variation-manager">
-            <div className="manager-header">
-              <div>
-                <h3>Variation Manager</h3>
-                <p className="muted">View, add, select, or delete saved browser variations for {selectedOpening.name}.</p>
-              </div>
-            </div>
-
-            <div className="manager-tools">
-              <button className="utility-button" onClick={exportSavedVariations}>Export saved variations</button>
-              <label className="import-button utility-button">
-                Import variations
-                <input type="file" accept="application/json,.json" onChange={importSavedVariations} />
-              </label>
-              <button className="utility-button danger-utility" onClick={clearSavedVariationsForOpening}>Clear this opening</button>
-              <button className="utility-button danger-utility" onClick={clearAllSavedVariations}>Clear all saved variations</button>
-            </div>
-
-            <div className="manager-grid">
-              <div className="manager-section">
-                <h4>Saved variations</h4>
-                {savedForOpening.length === 0 ? (
-                  <p className="muted">No saved variations for this opening yet.</p>
-                ) : (
-                  <div className="saved-variation-list">
-                    {savedForOpening.map((variation, index) => (
-                      <div key={`${variation.line}-${index}`} className="saved-variation-item">
-                        <div>
-                          <strong>{variation.name}</strong>
-                          <code>{variation.line}</code>
-                        </div>
-                        <div className="saved-variation-actions">
-                          <button type="button" onClick={() => selectSavedVariation(index)}>Practice</button>
-                          <button type="button" className="danger-utility" onClick={() => deleteSavedVariation(selectedOpeningId, index)}>Delete</button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="manager-section">
-                <h4>Add variation from scratch</h4>
-                <label>Variation name</label>
-                <input
-                  value={manualVariationName}
-                  onChange={(e) => setManualVariationName(e.target.value)}
-                  placeholder="e.g. Englund Bf4 alternate"
-                />
-                <label>PGN-style line</label>
-                <textarea
-                  value={manualVariationLine}
-                  onChange={(e) => setManualVariationLine(e.target.value)}
-                  rows={4}
-                  placeholder="1. d4 e5 2. dxe5 Nc6 3. Bf4"
-                />
-                <button type="button" onClick={addManualVariation}>Add variation</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {selectedOpeningId === "custom" && showCustomEditor && (
-          <div className="custom-editor">
-            <label>Custom repertoire line</label>
-            <textarea
-              value={customLineText}
-              onChange={(e) => {
-                setCustomLineText(e.target.value);
-                resetQuiz(false);
-              }}
-              rows={5}
-            />
-            <div className="button-row">
-              <button className={quizSide === "White" ? "active" : ""} onClick={() => setQuizSide("White")}>
-                Play White
-              </button>
-              <button className={quizSide === "Black" ? "active" : ""} onClick={() => setQuizSide("Black")}>
-                Play Black
-              </button>
-            </div>
-          </div>
-        )}
-      </section>
+      <PracticePanel
+        customLineText={customLineText}
+        manualVariationLine={manualVariationLine}
+        manualVariationName={manualVariationName}
+        openings={OPENINGS}
+        quizSide={quizSide}
+        savedForOpening={savedForOpening}
+        selectedOpening={selectedOpening}
+        selectedOpeningId={selectedOpeningId}
+        showCustomEditor={showCustomEditor}
+        showVariationManager={showVariationManager}
+        onAddManualVariation={addManualVariation}
+        onChooseOpening={chooseOpening}
+        onClearAllSavedVariations={clearAllSavedVariations}
+        onClearSavedVariationsForOpening={clearSavedVariationsForOpening}
+        onCustomLineTextChange={setCustomLineText}
+        onDeleteSavedVariation={deleteSavedVariation}
+        onExportSavedVariations={exportSavedVariations}
+        onImportSavedVariations={importSavedVariations}
+        onManualVariationLineChange={setManualVariationLine}
+        onManualVariationNameChange={setManualVariationName}
+        onResetMainLine={resetToMainLine}
+        onResetQuiz={resetQuiz}
+        onSelectSavedVariation={selectSavedVariation}
+        onSetQuizSide={setQuizSide}
+        onToggleVariationManager={() => setShowVariationManager((value) => !value)}
+      />
 
       <section className="layout">
         <div className="left-column">
-          <div className="card">
-            <div className="quiz-header">
-              <div>
-                <p className="eyebrow">Current line</p>
-                <h2>{selectedOpeningId === "custom" ? "Custom Line" : selectedOpening.name}</h2>
-                {selectedOpeningId !== "custom" && <p className="variation-name">Variation: {selectedVariation.name}{selectedVariation.saved ? " · saved" : ""}</p>}
-                {selectedOpeningId !== "custom" && savedForOpening.length > 0 && (
-                  <p className="variation-name">Saved variations: {savedForOpening.length}</p>
-                )}
-              </div>
-              <span>{progress}% complete</span>
-            </div>
+          <CurrentLineCard
+            currentIndex={currentIndex}
+            currentMove={currentMove}
+            currentSide={currentSide}
+            dynamicAnalysis={dynamicAnalysis}
+            dynamicAnalysisStatus={dynamicAnalysisStatus}
+            extensionBaseMoves={extensionBaseMoves}
+            extensionMode={extensionMode}
+            extensionMoveMode={extensionMoveMode}
+            extensionMoves={extensionMoves}
+            extensionName={extensionName}
+            extensionThresholdCp={extensionThresholdCp}
+            extensionTopMoveStatus={extensionTopMoveStatus}
+            feedback={feedback}
+            filteredExtensionTopMoves={filteredExtensionTopMoves}
+            freePlayMode={freePlayMode}
+            freePlayMoves={freePlayMoves}
+            historyItems={historyItems}
+            isDone={isDone}
+            isQuizTurn={isQuizTurn}
+            isReviewing={isReviewing}
+            lesson={lesson}
+            lessonStep={lessonStep}
+            moves={moves}
+            opponentThinking={opponentThinking}
+            progress={progress}
+            quizSide={quizSide}
+            savedForOpening={savedForOpening}
+            selectedOpening={selectedOpening}
+            selectedOpeningId={selectedOpeningId}
+            selectedVariation={selectedVariation}
+            showAnswer={showAnswer}
+            shownFen={shownFen}
+            viewIndex={viewIndex}
+            wrongAttemptsThisMove={wrongAttemptsThisMove}
+            formatTopMoveOption={formatTopMoveOption}
+            moveNumberForIndex={moveNumberForIndex}
+            onAdvance={advance}
+            onCancelExtensionMode={cancelExtensionMode}
+            onClearReview={clearReview}
+            onOpenLesson={openLesson}
+            onResetQuiz={resetQuiz}
+            onSaveExtendedVariation={saveExtendedVariation}
+            onSavePlayableAlternative={savePlayableAlternative}
+            onSetExtensionMoveMode={setExtensionMoveMode}
+            onSetExtensionName={setExtensionName}
+            onSetExtensionThresholdCp={setExtensionThresholdCp}
+            onSetLesson={setLesson}
+            onSetLessonStep={setLessonStep}
+            onSetShowAnswer={setShowAnswer}
+            onSetViewIndex={setViewIndex}
+            onStartExtensionFromPlayableAlternative={startExtensionFromPlayableAlternative}
+            onStartFreePlay={startFreePlay}
+            onStopFreePlay={stopFreePlay}
+          />
 
-            <div className="side-row">
-              <span className="pill">Playing {quizSide}</span>
-              <span className="pill muted-pill">Move {Math.min(currentIndex + 1, moves.length || 1)} of {moves.length}</span>
-              {isReviewing && <button className="small-button" onClick={clearReview}>Return to current position</button>}
-            </div>
-
-            <div className="progress-bar"><div style={{ width: `${progress}%` }} /></div>
-
-            <div className="moves-box">
-              <div className="label">Moves played — click any move to review that position</div>
-              <div className="move-history">
-                {historyItems.length === 0 ? (
-                  <span className="moves-text">Start position</span>
-                ) : (
-                  historyItems.map((item) => (
-                    <button
-                      key={item.index}
-                      className={`move-chip ${viewIndex === item.index + 1 ? "selected" : ""}`}
-                      onClick={() => {
-                        setViewIndex(item.index + 1);
-                        setLesson(null);
-                      }}
-                    >
-                      {item.side === "White" && `${item.moveNo}. `}{item.label}
-                    </button>
-                  ))
-                )}
-              </div>
-              {extensionMode && (
-                <div className="freeplay-history">
-                  <div className="label">Extension line</div>
-                  <div className="move-history">
-                    {[...extensionBaseMoves, ...extensionMoves].map((move, index) => (
-                      <span key={`${move}-${index}`} className="freeplay-chip">
-                        {index % 2 === 0 && `${Math.floor(index / 2) + 1}. `}{move}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {freePlayMoves.length > 0 && (
-                <div className="freeplay-history">
-                  <div className="label">Free play continuation</div>
-                  <div className="move-history">
-                    {freePlayMoves.map((move, index) => (
-                      <span key={`${move}-${index}`} className="freeplay-chip">
-                        {index % 2 === 0 && `${Math.floor(index / 2) + 1}. `}{move}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="status-area">
-              {lesson ? (
-                <div className="lesson-box">
-                  <strong>{lesson.title}</strong>
-                  <p>{lesson.text}</p>
-                  <code>{lesson.line}</code>
-                  <div className="button-row">
-                    <button onClick={() => setLessonStep((s) => Math.max(0, s - 1))}>Previous</button>
-                    <button onClick={() => setLessonStep((s) => Math.min(lesson.moves.length, s + 1))}>Next</button>
-                    <button onClick={clearReview}>Back to drill</button>
-                  </div>
-                  <p className="muted">Lesson move {lessonStep} of {lesson.moves.length}</p>
-                </div>
-              ) : extensionMode ? (
-                <div className="success-box">
-                  <strong>Extending saved variation.</strong>
-                  <p>Play both sides from the alternate move. Save when the position feels stable enough to train later.</p>
-                  <div className="extension-mode-controls">
-                    <span>Accepted moves</span>
-                    <button
-                      className={extensionMoveMode === "top1" ? "active" : ""}
-                      onClick={() => setExtensionMoveMode("top1")}
-                    >
-                      Top move only
-                    </button>
-                    <button
-                      className={extensionMoveMode === "top3" ? "active" : ""}
-                      onClick={() => setExtensionMoveMode("top3")}
-                    >
-                      Top 3 moves
-                    </button>
-                    <label className="threshold-control">
-                      Within
-                      <select
-                        value={extensionThresholdCp}
-                        onChange={(e) => setExtensionThresholdCp(Number(e.target.value))}
-                        disabled={extensionMoveMode === "top1"}
-                      >
-                        <option value={25}>0.25</option>
-                        <option value={50}>0.50</option>
-                        <option value={75}>0.75</option>
-                        <option value={100}>1.00</option>
-                        <option value={150}>1.50</option>
-                      </select>
-                      pawns of best
-                    </label>
-                  </div>
-                  <div className="extension-top-moves">
-                    <strong>Current Stockfish options</strong>
-                    {extensionTopMoveStatus === "loading" && <p>Analyzing accepted moves...</p>}
-                    {extensionTopMoveStatus === "unavailable" && <p>No engine move list available yet.</p>}
-                    {extensionTopMoveStatus === "ready" && (
-                      <ol>
-                        {(extensionMoveMode === "top1"
-                          ? extensionTopMoves.slice(0, 1)
-                          : filterTopMovesByThreshold(extensionTopMoves, extensionThresholdCp).slice(0, 3)
-                        ).map((entry) => (
-                          <li key={`${entry.multiPv}-${entry.bestMove}`}>
-                            <span>{formatTopMoveOption(shownFen, entry)}</span>
-                          </li>
-                        ))}
-                      </ol>
-                    )}
-                  </div>
-                  <div className="ending-guidelines">
-                    <strong>When to end the variation</strong>
-                    <ul>
-                      <li>The tactical sequence is resolved.</li>
-                      <li>The queen or piece chase is over.</li>
-                      <li>Both sides have developed normally.</li>
-                      <li>The king is safe, castled, or clearly about to castle.</li>
-                      <li>There is no obvious forcing move left.</li>
-                      <li>The eval has stabilized and you understand the plan.</li>
-                    </ul>
-                  </div>
-                  <div className="extension-name-row">
-                    <label>Variation name</label>
-                    <input
-                      value={extensionName}
-                      onChange={(e) => setExtensionName(e.target.value)}
-                      placeholder="Name this variation"
-                    />
-                  </div>
-                  <div className="button-row">
-                    <button onClick={saveExtendedVariation}>Save extended variation</button>
-                    <button onClick={cancelExtensionMode}>Cancel</button>
-                  </div>
-                </div>
-              ) : freePlayMode ? (
-                <div className="success-box">
-                  <strong>Free play mode.</strong>
-                  <p>Keep playing legal moves from the final position. The eval bar will keep updating.</p>
-                  <div className="button-row">
-                    <button onClick={stopFreePlay}>Exit free play</button>
-                  </div>
-                </div>
-              ) : isDone ? (
-                <div className="success-box">
-                  <strong>Line complete.</strong>
-                  <p>Start free play to see how the position can continue.</p>
-                  <div className="button-row">
-                    <button onClick={startFreePlay}>Continue from here</button>
-                    <button onClick={() => resetQuiz(true)}>New random variation</button>
-                  </div>
-                </div>
-              ) : !isQuizTurn ? (
-                <div className="opponent-box"><p>Opponent to move. {opponentThinking ? "Thinking..." : "Playing move..."}</p></div>
-              ) : isReviewing ? (
-                <div className="answer-box"><p>You are reviewing a past position.</p><button onClick={clearReview}>Return to current position</button></div>
-              ) : (
-                <div className="answer-box">
-                  <p>Your move: <strong>Move {moveNumberForIndex(currentIndex)} for {currentSide}</strong></p>
-                  <p className="muted">Drag and drop the piece where it belongs. Click-to-move still works too.</p>
-                  <div className="hint-row">
-                    {wrongAttemptsThisMove > 0 && <button type="button" onClick={() => setShowAnswer(true)}>Show answer</button>}
-                    {feedback?.explanation?.seeLine && <button type="button" onClick={() => openLesson(feedback.explanation)}>See line</button>}
-                    {showAnswer && <button type="button" onClick={advance}>Skip to next move</button>}
-                  </div>
-                  {showAnswer && <p className="answer-reveal">Correct move: <strong>{currentMove}</strong></p>}
-                </div>
-              )}
-            </div>
-
-            <div className="feedback-area">
-              {feedback && (
-                <div className={`feedback ${feedback.type}`}>
-                  {feedback.text}
-                  {feedback.explanation?.text && <p>{feedback.explanation.text}</p>}
-                  {dynamicAnalysisStatus === "loading" && <p>Analyzing with Stockfish...</p>}
-                  {dynamicAnalysisStatus === "unavailable" && <p>Dynamic analysis unavailable for this move.</p>}
-                  {dynamicAnalysisStatus === "ready" && dynamicAnalysis && (
-                    <div className={`dynamic-analysis ${dynamicAnalysis.isPlayableAlternative ? "playable" : ""}`}>
-                      <p><strong>{dynamicAnalysis.isPlayableAlternative ? "Playable alternate line" : "Engine comparison"}</strong></p>
-                      <p>You played: <strong>{dynamicAnalysis.playedSan}</strong></p>
-                      <p>Repertoire move: <strong>{dynamicAnalysis.repertoireMove}</strong></p>
-                      <p>Engine prefers: <strong>{dynamicAnalysis.bestSan}</strong></p>
-                      <p>Eval before: <strong>{dynamicAnalysis.evalBefore}</strong> → after your move: <strong>{dynamicAnalysis.evalAfter}</strong> ({dynamicAnalysis.swing})</p>
-                      <p>{dynamicAnalysis.explanation}</p>
-                      {dynamicAnalysis.isPlayableAlternative && selectedOpeningId !== "custom" && (
-                        <button type="button" onClick={savePlayableAlternative}>
-                          Add this as a saved variation
-                        </button>
-                      )}
-                      {dynamicAnalysis.isPlayableAlternative && selectedOpeningId !== "custom" && (
-                        <button type="button" onClick={startExtensionFromPlayableAlternative}>
-                          Extend this variation
-                        </button>
-                      )}
-                      {dynamicAnalysis.engineLineAfterMistake.length > 0 && (
-                        <p>Line after your move: <code>{dynamicAnalysis.engineLineAfterMistake.join(" ")}</code></p>
-                      )}
-                      {dynamicAnalysis.engineLineBest.length > 0 && (
-                        <p>Engine line with best move: <code>{dynamicAnalysis.engineLineBest.join(" ")}</code></p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="card">
-            <h2>Mistake review</h2>
-            {mistakes.length === 0 ? (
-              <p className="muted">No mistakes yet.</p>
-            ) : (
-              <div className="mistakes">
-                {mistakes.slice(0, 8).map((m, i) => (
-                  <div key={i} className="mistake">
-                    <strong>Move {m.moveNumber}, {m.side}: {m.correct}</strong>
-                    <div>You played: {m.guessed}</div>
-                    {m.explanationTitle && <small>{m.explanationTitle}</small>}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <MistakeReview mistakes={mistakes} />
         </div>
 
-        <div className="board-card">
-          <div className="board-with-eval">
-            <div className="eval-wrap">
-              <div className="eval-number">{evalStatus === "loading" ? "…" : formatEval(engineEval)}</div>
-              <div
-                className="eval-bar"
-                title="Local Stockfish evaluation"
-                style={{
-                  "--black-eval-size": `${100 - evalHeight}%`,
-                  "--white-eval-size": `${evalHeight}%`,
-                }}
-              >
-                <div className="eval-black" />
-                <div className="eval-white" />
-              </div>
-              <div className="eval-source">
-                {evalStatus === "ready" && engineEval?.depth ? `SF d${engineEval.depth}` : evalStatus === "analyzing" ? "SF..." : evalStatus === "unavailable" ? "no SF" : "SF"}
-              </div>
-            </div>
-            <div className="board-shell"><Chessboard options={chessboardOptions} /></div>
-          </div>
-        </div>
+        <BoardWithEval
+          chessboardOptions={chessboardOptions}
+          engineEval={engineEval}
+          evalHeight={evalHeight}
+          evalStatus={evalStatus}
+          formatEval={formatEval}
+        />
       </section>
     </main>
   );
