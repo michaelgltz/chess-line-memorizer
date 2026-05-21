@@ -332,6 +332,23 @@ function filterTopMovesByThreshold(topMoves, thresholdCp) {
   });
 }
 
+function formatTopMoveOption(fen, entry) {
+  if (!entry?.bestMove) return "—";
+
+  const san = uciToSan(fen, entry.bestMove) || entry.bestMove;
+  let evalText = "—";
+
+  try {
+    const game = new Chess(fen);
+    const whiteScore = scoreFromWhitePerspective(entry, game.turn());
+    evalText = formatPawnEvalFromScore(whiteScore);
+  } catch {
+    evalText = "—";
+  }
+
+  return `${san} ${evalText}`;
+}
+
 function formatPawnEvalFromScore(score) {
   if (!score) return "—";
   if (score.mate !== undefined && score.mate !== null) {
@@ -1705,7 +1722,7 @@ export default function App() {
                           : filterTopMovesByThreshold(extensionTopMoves, extensionThresholdCp).slice(0, 3)
                         ).map((entry) => (
                           <li key={`${entry.multiPv}-${entry.bestMove}`}>
-                            {uciToSan(shownFen, entry.bestMove) || entry.bestMove}
+                            <span>{formatTopMoveOption(shownFen, entry)}</span>
                           </li>
                         ))}
                       </ol>
