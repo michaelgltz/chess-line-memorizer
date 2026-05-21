@@ -31,6 +31,7 @@ export default function CurrentLineCard({
   selectedVariation,
   showAnswer,
   shownFen,
+  treeBranchCount,
   viewIndex,
   wrongAttemptsThisMove,
   formatTopMoveOption,
@@ -70,6 +71,7 @@ export default function CurrentLineCard({
       <div className="side-row">
         <span className="pill">Playing {quizSide}</span>
         <span className="pill muted-pill">Move {Math.min(currentIndex + 1, moves.length || 1)} of {moves.length}</span>
+        {treeBranchCount > 1 && <span className="pill muted-pill">Tree choices: {treeBranchCount}</span>}
         {isReviewing && <button className="small-button" onClick={onClearReview}>Return to current position</button>}
       </div>
 

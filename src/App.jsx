@@ -436,6 +436,90 @@ function parseMoves(text) {
     .filter((m) => !["1-0", "0-1", "1/2-1/2", "*"].includes(m));
 }
 
+function buildVariationEntries(variations) {
+  return variations.map((variation, index) => ({
+    index,
+    variation,
+    moves: parseMoves(variation.line),
+  }));
+}
+
+function createMoveTreeNode() {
+  return {
+    childMap: new Map(),
+    children: [],
+    variationIndices: [],
+  };
+}
+
+function buildMoveTree(variationEntries) {
+  const root = createMoveTreeNode();
+
+  for (const entry of variationEntries) {
+    if (!root.variationIndices.includes(entry.index)) {
+      root.variationIndices.push(entry.index);
+    }
+
+    let node = root;
+    for (const san of entry.moves) {
+      const key = normalizeMove(san);
+      let edge = node.childMap.get(key);
+
+      if (!edge) {
+        edge = {
+          san,
+          key,
+          count: 0,
+          firstVariationIndex: entry.index,
+          variationIndices: [],
+          child: createMoveTreeNode(),
+        };
+        node.childMap.set(key, edge);
+        node.children.push(edge);
+      }
+
+      edge.count += 1;
+      if (!edge.variationIndices.includes(entry.index)) {
+        edge.variationIndices.push(entry.index);
+      }
+      if (!edge.child.variationIndices.includes(entry.index)) {
+        edge.child.variationIndices.push(entry.index);
+      }
+
+      node = edge.child;
+    }
+  }
+
+  return root;
+}
+
+function findMoveTreeNode(root, playedMoves) {
+  if (!root) return null;
+  let node = root;
+
+  for (const move of playedMoves) {
+    const edge = node.childMap.get(normalizeMove(move));
+    if (!edge) return null;
+    node = edge.child;
+  }
+
+  return node;
+}
+
+function chooseTreeContinuation(variationEntries, edge, { randomize = false, preferredVariationIndex = null } = {}) {
+  if (!edge?.variationIndices?.length) return null;
+
+  const candidateIndices = edge.variationIndices;
+  const chosenIndex = preferredVariationIndex !== null && candidateIndices.includes(preferredVariationIndex)
+    ? preferredVariationIndex
+    : randomize
+      ? candidateIndices[randomIndex(candidateIndices.length)]
+      : candidateIndices[0];
+  const entry = variationEntries[chosenIndex];
+
+  return entry ? { index: chosenIndex, moves: entry.moves } : null;
+}
+
 function randomIndex(length) {
   return Math.floor(Math.random() * length);
 }
@@ -878,6 +962,7 @@ export default function App() {
   const [selectedOpeningId, setSelectedOpeningId] = useState(OPENINGS[0].id);
   const [selectedVariationIndex, setSelectedVariationIndex] = useState(0);
   const [customLineText, setCustomLineText] = useState(OPENINGS[0].variations[0].line);
+  const [plannedMoves, setPlannedMoves] = useState(() => parseMoves(OPENINGS[0].variations[0].line));
   const [quizSide, setQuizSide] = useState("White");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [viewIndex, setViewIndex] = useState(null);
@@ -933,9 +1018,12 @@ export default function App() {
   const availableVariations = selectedOpeningId === "custom"
     ? []
     : [...(selectedOpening.variations || []), ...savedForOpening];
+  const variationEntries = useMemo(() => buildVariationEntries(availableVariations), [availableVariations]);
+  const moveTree = useMemo(() => buildMoveTree(variationEntries), [variationEntries]);
   const selectedVariation = availableVariations[selectedVariationIndex] || availableVariations[0];
-  const lineText = selectedOpeningId === "custom" ? customLineText : selectedVariation.line;
-  const moves = useMemo(() => parseMoves(lineText), [lineText]);
+  const moves = useMemo(() => (
+    selectedOpeningId === "custom" ? parseMoves(customLineText) : plannedMoves
+  ), [customLineText, plannedMoves, selectedOpeningId]);
 
   const game = useMemo(() => makeGameAtMove(moves, currentIndex), [moves, currentIndex]);
   const actualFen = game.fen();
@@ -950,12 +1038,15 @@ export default function App() {
   const sideToMove = shownGame.turn();
   latestSideToMoveRef.current = sideToMove;
 
-  const currentMove = moves[currentIndex];
+  const currentTreeNode = useMemo(() => (
+    selectedOpeningId === "custom" ? null : findMoveTreeNode(moveTree, moves.slice(0, currentIndex))
+  ), [currentIndex, moveTree, moves, selectedOpeningId]);
+  const currentMove = moves[currentIndex] || currentTreeNode?.children?.[0]?.san;
   const currentSide = sideForIndex(currentIndex);
   const isQuizTurn = currentSide === quizSide;
-  const isDone = currentIndex >= moves.length;
+  const isDone = !currentMove && currentIndex >= moves.length;
   const isReviewing = viewIndex !== null || lesson !== null;
-  const progress = moves.length ? Math.round((currentIndex / moves.length) * 100) : 0;
+  const progress = moves.length ? Math.round((Math.min(currentIndex, moves.length) / moves.length) * 100) : 0;
   const evalHeight = whiteEvalHeight(engineEval);
   const historyItems = buildHistoryItems(moves, currentIndex);
 
@@ -1077,40 +1168,26 @@ export default function App() {
   }
 
   function resetToMainLine() {
-    setSelectedVariationIndex(0);
-    setCurrentIndex(0);
-    setViewIndex(null);
-    setFeedback(null);
-    setDynamicAnalysis(null);
-    setDynamicAnalysisStatus("idle");
-    setMistakes([]);
-    setShowAnswer(false);
-    setWrongAttemptsThisMove(0);
-    setSelectedSquare(null);
-    setPreviewFen(null);
-    setOpponentThinking(false);
-    setLesson(null);
-    setLessonStep(0);
-    setFreePlayMode(false);
-    setFreePlayFen(null);
-    setFreePlayMoves([]);
-    setExtensionMode(false);
-    setExtensionFen(null);
-    setExtensionBaseMoves([]);
-    setExtensionMoves([]);
-    setExtensionName("");
-    setExtensionTopMoves([]);
-    setExtensionTopMoveStatus("idle");
+    resetQuiz(false, selectedOpeningId, 0);
   }
 
-  function resetQuiz(randomizeVariation = true) {
-    const opening = OPENINGS.find((o) => o.id === selectedOpeningId) || OPENINGS[0];
-    const variations = selectedOpeningId === "custom"
+  function resetQuiz(randomizeVariation = true, openingId = selectedOpeningId, forcedVariationIndex = null) {
+    const opening = OPENINGS.find((o) => o.id === openingId) || OPENINGS[0];
+    const variations = openingId === "custom"
       ? []
-      : [...(opening.variations || []), ...(savedVariations[selectedOpeningId] || [])];
-    if (randomizeVariation && selectedOpeningId !== "custom" && variations.length > 0) {
-      setSelectedVariationIndex(randomIndex(variations.length));
+      : [...(opening.variations || []), ...(savedVariations[openingId] || [])];
+
+    if (openingId !== "custom" && variations.length > 0) {
+      const nextVariationIndex = forcedVariationIndex !== null
+        ? Math.max(0, Math.min(forcedVariationIndex, variations.length - 1))
+        : randomizeVariation
+          ? randomIndex(variations.length)
+          : Math.max(0, Math.min(selectedVariationIndex, variations.length - 1));
+
+      setSelectedVariationIndex(nextVariationIndex);
+      setPlannedMoves(parseMoves(variations[nextVariationIndex].line));
     }
+
     setCurrentIndex(0);
     setViewIndex(null);
     setFeedback(null);
@@ -1140,7 +1217,7 @@ export default function App() {
     if (openingId === "custom") {
       setSelectedOpeningId("custom");
       setShowCustomEditor(true);
-      resetQuiz(false);
+      resetQuiz(false, "custom");
       return;
     }
 
@@ -1149,7 +1226,9 @@ export default function App() {
 
     setSelectedOpeningId(nextOpening.id);
     const nextVariations = [...(nextOpening.variations || []), ...(savedVariations[nextOpening.id] || [])];
-    setSelectedVariationIndex(randomIndex(nextVariations.length));
+    const nextVariationIndex = nextVariations.length ? randomIndex(nextVariations.length) : 0;
+    setSelectedVariationIndex(nextVariationIndex);
+    setPlannedMoves(parseMoves(nextVariations[nextVariationIndex]?.line || ""));
     setShowCustomEditor(false);
     setCurrentIndex(0);
     setViewIndex(null);
@@ -1177,7 +1256,7 @@ export default function App() {
   }
 
   function advance() {
-    setCurrentIndex((i) => Math.min(i + 1, moves.length));
+    setCurrentIndex((i) => i + 1);
     setFeedback(null);
     setDynamicAnalysis(null);
     setDynamicAnalysisStatus("idle");
@@ -1201,6 +1280,18 @@ export default function App() {
 
   function playOpponentMove() {
     if (isDone || isQuizTurn) return;
+    if (selectedOpeningId !== "custom" && currentTreeNode?.children?.length) {
+      const edge = currentTreeNode.children[randomIndex(currentTreeNode.children.length)];
+      const continuation = chooseTreeContinuation(variationEntries, edge, {
+        randomize: true,
+        preferredVariationIndex: selectedVariationIndex,
+      });
+
+      if (continuation) {
+        setSelectedVariationIndex(continuation.index);
+        setPlannedMoves(continuation.moves);
+      }
+    }
     advance();
   }
 
@@ -1304,6 +1395,11 @@ export default function App() {
       };
     });
 
+    const builtInCount = selectedOpening.variations?.length || 0;
+    if (selectedVariationIndex === builtInCount + editingVariationIndex) {
+      setPlannedMoves(parseMoves(line));
+    }
+
     cancelEditingSavedVariation();
     setFeedback({ type: "correct", text: `Updated saved variation: ${name}` });
   }
@@ -1331,8 +1427,10 @@ export default function App() {
 
   function selectSavedVariation(variationIndex) {
     const builtInCount = selectedOpening.variations?.length || 0;
-    setSelectedVariationIndex(builtInCount + variationIndex);
-    resetQuiz(false);
+    const nextVariationIndex = builtInCount + variationIndex;
+    setSelectedVariationIndex(nextVariationIndex);
+    setPlannedMoves(parseMoves(savedForOpening[variationIndex]?.line || ""));
+    resetQuiz(false, selectedOpeningId, nextVariationIndex);
     setShowVariationManager(false);
   }
 
@@ -1715,11 +1813,26 @@ export default function App() {
     }
 
     const guessedSan = move.san;
-    const correct = normalizeMove(guessedSan) === normalizeMove(currentMove);
+    const treeEdge = selectedOpeningId === "custom"
+      ? null
+      : currentTreeNode?.childMap.get(normalizeMove(guessedSan));
+    const correct = treeEdge ? true : normalizeMove(guessedSan) === normalizeMove(currentMove);
 
     if (correct) {
+      if (treeEdge) {
+        const continuation = chooseTreeContinuation(variationEntries, treeEdge, {
+          randomize: true,
+          preferredVariationIndex: selectedVariationIndex,
+        });
+
+        if (continuation) {
+          setSelectedVariationIndex(continuation.index);
+          setPlannedMoves(continuation.moves);
+        }
+      }
+
       setPreviewFen(testGame.fen());
-      setFeedback({ type: "correct", text: `Correct: ${guessedSan}` });
+      setFeedback({ type: "correct", text: treeEdge && normalizeMove(guessedSan) !== normalizeMove(currentMove) ? `Correct branch: ${guessedSan}` : `Correct: ${guessedSan}` });
       setTimeout(advance, CORRECT_FEEDBACK_DELAY_MS);
       return true;
     }
@@ -2010,6 +2123,7 @@ export default function App() {
             selectedVariation={selectedVariation}
             showAnswer={showAnswer}
             shownFen={shownFen}
+            treeBranchCount={currentTreeNode?.children?.length || 0}
             viewIndex={viewIndex}
             wrongAttemptsThisMove={wrongAttemptsThisMove}
             formatTopMoveOption={formatTopMoveOption}
