@@ -850,3 +850,44 @@ textarea {
   min-height: 40px;
   font-size: 13px;
 }
+
+/* Mobile chessboard fix */
+.board-shell {
+  aspect-ratio: 1 / 1;
+}
+
+.board-shell > div {
+  width: 100% !important;
+  aspect-ratio: 1 / 1;
+}
+
+@media (max-width: 700px) {
+  .board-card {
+    padding: 12px;
+  }
+
+  .board-with-eval {
+    grid-template-columns: 32px minmax(0, 1fr);
+    gap: 8px;
+    align-items: start;
+  }
+
+  .board-shell {
+    width: 100%;
+    max-width: calc(100vw - 72px);
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+  }
+
+  .board-shell > div {
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 1 / 1;
+  }
+
+  .eval-bar {
+    min-height: 0;
+    height: calc(100vw - 72px);
+    max-height: calc(100vw - 72px);
+  }
+}
