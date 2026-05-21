@@ -16,6 +16,7 @@ const OPENINGS = [
   {
     id: "englund-white",
     name: "Englund Gambit Refutation",
+    category: "White repertoire",
     description: "Train White's main responses against common Englund ideas.",
     variations: [
       {
@@ -54,6 +55,7 @@ const OPENINGS = [
   {
     id: "london-white",
     name: "London System",
+    category: "White repertoire",
     description: "Practice common London structures and move orders.",
     variations: [
       {
@@ -84,6 +86,7 @@ const OPENINGS = [
   {
     id: "ruy-lopez-white",
     name: "Ruy Lopez",
+    category: "White repertoire",
     description: "Train classical Spanish positions from the main line, Berlin, and Exchange structures.",
     variations: [
       {
@@ -114,6 +117,7 @@ const OPENINGS = [
   {
     id: "italian-white",
     name: "Italian Game",
+    category: "White repertoire",
     description: "Practice flexible Italian setups, Two Knights move orders, and the Evans Gambit.",
     variations: [
       {
@@ -144,6 +148,7 @@ const OPENINGS = [
   {
     id: "queens-gambit-white",
     name: "Queen's Gambit",
+    category: "White repertoire",
     description: "Practice Queen's Gambit structures against declined, accepted, and Albin setups.",
     variations: [
       {
@@ -174,6 +179,7 @@ const OPENINGS = [
   {
     id: "sicilian-black",
     name: "Sicilian Defense",
+    category: "Black vs e4",
     description: "Practice a few common Black replies in open Sicilian structures.",
     variations: [
       {
@@ -196,6 +202,7 @@ const OPENINGS = [
   {
     id: "caro-kann-black",
     name: "Caro-Kann Defense",
+    category: "Black vs e4",
     description: "Train reliable Caro-Kann structures against Advance, Classical, and Panov systems.",
     variations: [
       {
@@ -226,6 +233,7 @@ const OPENINGS = [
   {
     id: "scandinavian-defense",
     name: "Scandinavian Defense",
+    category: "Black vs e4",
     description: "Practice Scandinavian structures with the main queen line, Modern setup, and Portuguese-style development.",
     variations: [
       {
@@ -256,6 +264,7 @@ const OPENINGS = [
   {
     id: "french-black",
     name: "French Defense",
+    category: "Black vs e4",
     description: "Practice French Defense pawn-chain play against Advance, Tarrasch, and Winawer lines.",
     variations: [
       {
@@ -286,6 +295,7 @@ const OPENINGS = [
   {
     id: "kings-indian-black",
     name: "King's Indian Defense",
+    category: "Black vs d4",
     description: "Practice King's Indian setups against Classical, Fianchetto, and Saemisch systems.",
     variations: [
       {
@@ -316,6 +326,7 @@ const OPENINGS = [
   {
     id: "nimzo-indian-black",
     name: "Nimzo-Indian Defense",
+    category: "Black vs d4",
     description: "Train Nimzo-Indian development against Rubinstein, Classical, and Leningrad setups.",
     variations: [
       {
@@ -346,6 +357,7 @@ const OPENINGS = [
   {
     id: "english-white",
     name: "English Opening",
+    category: "White repertoire",
     description: "Practice English Opening structures with kingside fianchetto and flexible central play.",
     variations: [
       {
@@ -376,6 +388,7 @@ const OPENINGS = [
   {
     id: "sicilian-white",
     name: "Sicilian Najdorf Response",
+    category: "White repertoire",
     description: "Practice White's response after Black plays ...a6 in the Sicilian.",
     variations: [
       {
