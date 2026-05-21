@@ -948,3 +948,52 @@ textarea {
     min-height: 112px;
   }
 }
+
+/* Mobile: stop Current Line card from changing page height */
+@media (max-width: 700px) {
+  .left-column > .card:first-child {
+    height: 560px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .left-column > .card:first-child .quiz-header {
+    flex: 0 0 auto;
+    min-height: 86px;
+  }
+
+  .left-column > .card:first-child .side-row {
+    flex: 0 0 auto;
+    min-height: 36px;
+  }
+
+  .left-column > .card:first-child .progress-bar {
+    flex: 0 0 auto;
+  }
+
+  .left-column > .card:first-child .moves-box {
+    flex: 0 0 125px;
+    min-height: 125px;
+    max-height: 125px;
+    overflow-y: auto;
+  }
+
+  .left-column > .card:first-child .status-area {
+    flex: 0 0 150px;
+    min-height: 150px;
+    max-height: 150px;
+    overflow-y: auto;
+  }
+
+  .left-column > .card:first-child .feedback-area {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .left-column > .card:first-child .dynamic-analysis {
+    max-height: none;
+    overflow: visible;
+  }
+}
