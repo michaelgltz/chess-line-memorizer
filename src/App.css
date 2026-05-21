@@ -928,10 +928,10 @@ textarea {
 
   .left-column > .card:first-child {
     order: 1;
-    height: 560px;
+    min-height: 560px;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .board-card {
@@ -981,8 +981,8 @@ textarea {
 
   .left-column > .card:first-child .feedback-area {
     flex: 1 1 auto;
-    min-height: 0;
-    overflow-y: auto;
+    min-height: 96px;
+    overflow: visible;
   }
 
   .left-column > .card:first-child .dynamic-analysis {
