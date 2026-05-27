@@ -60,6 +60,11 @@ const OPENINGS = [
         line: `1. d4 e5 2. dxe5 Nc6 3. Nf3 f6 4. exf6 Nxf6 5. Bg5 d5 6. e3 Be7 7. Nc3 O-O`,
         explanations: {},
       },
+      {
+        name: "Englund queen tradeoff line",
+        line: `1. d4 e5 2. dxe5 Nc6 3. Nf3 Qe7 4. Nc3 Nxe5 5. Nxe5 Qxe5 6. e4 Bb4 7. Bd3 Nf6 8. O-O`,
+        explanations: {},
+      },
     ],
   },
   {
@@ -89,6 +94,11 @@ const OPENINGS = [
       {
         name: "London with early ...Bf5",
         line: `1. d4 d5 2. Nf3 Nf6 3. Bf4 Bf5 4. e3 e6 5. c4 c6 6. Nc3 Nbd7 7. Bd3`,
+        explanations: {},
+      },
+      {
+        name: "London against King's Indian setup",
+        line: `1. d4 Nf6 2. Nf3 g6 3. Bf4 Bg7 4. e3 O-O 5. Be2 d6 6. h3 c5 7. c3 Nc6 8. O-O`,
         explanations: {},
       },
     ],
@@ -122,6 +132,11 @@ const OPENINGS = [
         line: `1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Bxc6 dxc6 5. O-O f6 6. d4 exd4 7. Nxd4 c5 8. Nb3 Qxd1 9. Rxd1`,
         explanations: {},
       },
+      {
+        name: "Open Spanish center",
+        line: `1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Nxe4 6. d4 b5 7. Bb3 d5 8. dxe5 Be6`,
+        explanations: {},
+      },
     ],
   },
   {
@@ -151,6 +166,39 @@ const OPENINGS = [
       {
         name: "Evans Gambit accepted",
         line: `1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. b4 Bxb4 5. c3 Ba5 6. d4 exd4 7. O-O d6 8. cxd4`,
+        explanations: {},
+      },
+      {
+        name: "Italian central break",
+        line: `1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. c3 Nf6 5. d4 exd4 6. e5 d5 7. Bb5 Ne4 8. cxd4`,
+        explanations: {},
+      },
+    ],
+  },
+  {
+    id: "scotch-game-white",
+    name: "Scotch Game",
+    category: "White repertoire",
+    description: "Practice Scotch Game central play, including classical, Mieses, Four Knights, and gambit structures.",
+    variations: [
+      {
+        name: "Classical Scotch pressure",
+        line: `1. e4 e5 2. Nf3 Nc6 3. d4 exd4 4. Nxd4 Bc5 5. Be3 Qf6 6. c3 Nge7 7. Bc4 O-O 8. O-O`,
+        explanations: {},
+      },
+      {
+        name: "Mieses variation",
+        line: `1. e4 e5 2. Nf3 Nc6 3. d4 exd4 4. Nxd4 Nf6 5. Nxc6 bxc6 6. e5 Qe7 7. Qe2 Nd5 8. c4 Ba6`,
+        explanations: {},
+      },
+      {
+        name: "Scotch Four Knights",
+        line: `1. e4 e5 2. Nf3 Nc6 3. Nc3 Nf6 4. d4 exd4 5. Nxd4 Bb4 6. Nxc6 bxc6 7. Bd3 d5 8. exd5`,
+        explanations: {},
+      },
+      {
+        name: "Scotch Gambit",
+        line: `1. e4 e5 2. Nf3 Nc6 3. d4 exd4 4. Bc4 Bc5 5. c3 Nf6 6. e5 d5 7. Bb5 Ne4 8. cxd4`,
         explanations: {},
       },
     ],
@@ -184,6 +232,11 @@ const OPENINGS = [
         line: `1. d4 d5 2. c4 e5 3. dxe5 d4 4. Nf3 Nc6 5. a3 Be6 6. Nbd2 Qd7 7. b4 Nge7`,
         explanations: {},
       },
+      {
+        name: "Slav development line",
+        line: `1. d4 d5 2. c4 c6 3. Nf3 Nf6 4. e3 Bf5 5. Nc3 e6 6. Nh4 Bg6 7. Nxg6 hxg6`,
+        explanations: {},
+      },
     ],
   },
   {
@@ -205,6 +258,11 @@ const OPENINGS = [
       {
         name: "Dragon-style setup",
         line: `1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 g6 6. Be3 Bg7 7. f3 O-O`,
+        explanations: {},
+      },
+      {
+        name: "Alapin structure",
+        line: `1. e4 c5 2. c3 Nf6 3. e5 Nd5 4. d4 cxd4 5. Nf3 e6 6. cxd4 d6 7. Bc4 Nc6`,
         explanations: {},
       },
     ],
@@ -238,6 +296,11 @@ const OPENINGS = [
         line: `1. e4 c6 2. d4 d5 3. exd5 cxd5 4. c4 Nf6 5. Nc3 e6 6. Nf3 Bb4 7. Bd3 dxc4`,
         explanations: {},
       },
+      {
+        name: "Exchange Caro-Kann",
+        line: `1. e4 c6 2. d4 d5 3. exd5 cxd5 4. Bd3 Nc6 5. c3 Nf6 6. Bf4 e6 7. Nd2 Bd6 8. Bxd6 Qxd6`,
+        explanations: {},
+      },
     ],
   },
   {
@@ -267,6 +330,11 @@ const OPENINGS = [
       {
         name: "Portuguese variation",
         line: `1. e4 d5 2. exd5 Nf6 3. d4 Bg4 4. f3 Bf5 5. c4 e6 6. dxe6 Nc6 7. exf7+ Kxf7`,
+        explanations: {},
+      },
+      {
+        name: "Queen retreat to d8",
+        line: `1. e4 d5 2. exd5 Qxd5 3. Nc3 Qd8 4. d4 Nf6 5. Nf3 c6 6. Bc4 Bf5 7. Ne5 e6`,
         explanations: {},
       },
     ],
@@ -300,6 +368,11 @@ const OPENINGS = [
         line: `1. e4 e6 2. d4 d5 3. Nc3 Bb4 4. e5 c5 5. a3 Bxc3+ 6. bxc3 Ne7 7. Qg4 Qc7`,
         explanations: {},
       },
+      {
+        name: "Exchange French",
+        line: `1. e4 e6 2. d4 d5 3. exd5 exd5 4. Nf3 Nf6 5. Bd3 Bd6 6. O-O O-O 7. Bg5 c6`,
+        explanations: {},
+      },
     ],
   },
   {
@@ -329,6 +402,11 @@ const OPENINGS = [
       {
         name: "Saemisch setup",
         line: `1. d4 Nf6 2. c4 g6 3. Nc3 Bg7 4. e4 d6 5. f3 O-O 6. Be3 e5 7. Nge2 c6`,
+        explanations: {},
+      },
+      {
+        name: "Averbakh system",
+        line: `1. d4 Nf6 2. c4 g6 3. Nc3 Bg7 4. e4 d6 5. Be2 O-O 6. Bg5 c5 7. d5 e6`,
         explanations: {},
       },
     ],
@@ -362,6 +440,11 @@ const OPENINGS = [
         line: `1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. Bg5 h6 5. Bh4 c5 6. d5 d6 7. e3 Bxc3+`,
         explanations: {},
       },
+      {
+        name: "Saemisch structure",
+        line: `1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. a3 Bxc3+ 5. bxc3 O-O 6. e3 c5 7. Bd3 Nc6`,
+        explanations: {},
+      },
     ],
   },
   {
@@ -393,6 +476,11 @@ const OPENINGS = [
         line: `1. c4 e5 2. Nc3 Nc6 3. g3 g6 4. Bg2 Bg7 5. e3 d6 6. Nge2 Be6`,
         explanations: {},
       },
+      {
+        name: "Botvinnik setup",
+        line: `1. c4 e5 2. Nc3 Nc6 3. g3 g6 4. Bg2 Bg7 5. e4 d6 6. Nge2 f5 7. d3 Nf6`,
+        explanations: {},
+      },
     ],
   },
   {
@@ -413,6 +501,16 @@ const OPENINGS = [
             },
           },
         },
+      },
+      {
+        name: "English Attack setup",
+        line: `1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 a6 6. Be3 e5 7. Nb3 Be6 8. f3 Be7 9. Qd2 O-O`,
+        explanations: {},
+      },
+      {
+        name: "Bg5 pressure line",
+        line: `1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 a6 6. Bg5 e6 7. f4 Be7 8. Qf3 h6 9. Bh4 Qc7`,
+        explanations: {},
       },
     ],
   },
