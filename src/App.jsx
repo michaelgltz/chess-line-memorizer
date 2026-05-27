@@ -2082,8 +2082,11 @@ export default function App() {
   return (
     <main className="app">
       <section className="hero">
+        <div className="brand-lockup" aria-label="The Opening Lab">
+          <img className="brand-mark" src="/favicon.svg" alt="" />
+          <h1>The Opening Lab</h1>
+        </div>
         <div>
-          <h1>Opening Lab</h1>
           <p>Practice opening lines, explore variations, and review mistakes on the board.</p>
         </div>
       </section>

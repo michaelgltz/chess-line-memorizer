@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import VariationManager from "./VariationManager.jsx";
 
 const OPENING_CATEGORY_ORDER = ["White repertoire", "Black vs e4", "Black vs d4"];
+const CUSTOM_OPTION_SEARCH_TEXT = "custom line custom practice paste any pgn-style move sequence play either color";
 
 function openingMatchesSearch(opening, searchText) {
   const query = searchText.trim().toLowerCase();
@@ -69,9 +70,9 @@ export default function PracticePanel({
       return safeIndexA - safeIndexB || categoryA.localeCompare(categoryB);
     });
   }, [openingSearchText, openings]);
-  const customMatchesSearch = "custom line".includes(openingSearchText.trim().toLowerCase());
+  const customMatchesSearch = CUSTOM_OPTION_SEARCH_TEXT.includes(openingSearchText.trim().toLowerCase());
   const showCustomOption = !openingSearchText.trim() || customMatchesSearch;
-  const selectedOpeningLabel = selectedOpeningId === "custom" ? "Custom Line" : selectedOpening.name;
+  const selectedOpeningLabel = selectedOpeningId === "custom" ? "Custom Practice - paste your own line" : selectedOpening.name;
 
   function chooseOpeningFromPicker(openingId) {
     onChooseOpening(openingId);
@@ -158,15 +159,18 @@ export default function PracticePanel({
                 </div>
               ))}
               {showCustomOption && (
-                <button
-                  type="button"
-                  className={`opening-picker-option ${selectedOpeningId === "custom" ? "selected" : ""}`}
-                  onMouseDown={(event) => event.preventDefault()}
-                  onClick={() => chooseOpeningFromPicker("custom")}
-                >
-                  <span>Custom Line</span>
-                  <small>Paste any PGN-style move sequence and play either color.</small>
-                </button>
+                <div className="opening-picker-group opening-picker-custom-group">
+                  <div className="opening-picker-group-label">Custom practice</div>
+                  <button
+                    type="button"
+                    className={`opening-picker-option custom-opening-option ${selectedOpeningId === "custom" ? "selected" : ""}`}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => chooseOpeningFromPicker("custom")}
+                  >
+                    <span>Custom Line</span>
+                    <small>Paste any PGN-style move sequence and play either color.</small>
+                  </button>
+                </div>
               )}
               {groupedOpenings.length === 0 && !showCustomOption && (
                 <p className="opening-search-empty">No openings match that search.</p>

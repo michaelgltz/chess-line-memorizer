@@ -8,16 +8,19 @@
    ========================================================================== */
 
 :root {
-  --bg: #020617;
-  --panel: #0f172a;
-  --panel-dark: #020617;
-  --panel-hover: #111827;
-  --border: #1e293b;
-  --border-strong: #334155;
+  --bg: #07110d;
+  --panel: #101827;
+  --panel-dark: #060c12;
+  --panel-hover: #172033;
+  --border: #203047;
+  --border-strong: #3a4a62;
   --text: #e5e7eb;
   --muted: #94a3b8;
   --soft: #cbd5e1;
-  --accent: #facc15;
+  --accent: #22c55e;
+  --accent-hover: #4ade80;
+  --accent-soft: rgba(34, 197, 94, 0.14);
+  --accent-contrast: #04130a;
 
   --success-bg: rgba(22, 101, 52, 0.35);
   --success-border: #166534;
@@ -39,7 +42,7 @@ body {
 button,
 .import-button {
   border: 1px solid var(--border-strong);
-  background: #1e293b;
+  background: var(--panel-hover);
   color: var(--text);
   padding: 10px 14px;
   border-radius: 10px;
@@ -54,8 +57,9 @@ button:hover,
 }
 
 button.active {
-  background: var(--text);
-  color: var(--bg);
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
 }
 
 textarea,
@@ -69,6 +73,14 @@ select {
   border-radius: 10px;
   padding: 12px;
   font-size: 16px;
+}
+
+textarea:focus,
+input:focus,
+select:focus {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent-soft);
+  outline-offset: 2px;
 }
 
 textarea {
@@ -133,8 +145,24 @@ textarea {
   margin-bottom: 28px;
 }
 
+.brand-lockup {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin: 0 auto 12px;
+}
+
+.brand-mark {
+  width: 76px;
+  height: 76px;
+  flex: 0 0 76px;
+  border-radius: 18px;
+  box-shadow: 0 18px 38px rgba(34, 197, 94, 0.22);
+}
+
 .hero h1 {
-  margin: 0 auto 10px;
+  margin: 0;
   line-height: 1.05;
   font-size: 52px;
 }
@@ -201,13 +229,14 @@ textarea {
 }
 
 .primary-action {
-  background: var(--text);
-  color: var(--bg);
-  border-color: var(--text);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-color: var(--accent);
 }
 
 .primary-action:hover {
-  background: var(--soft);
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 
 .utility-actions {
@@ -329,6 +358,17 @@ textarea {
 
 .opening-picker-option.selected {
   border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.opening-picker-custom-group {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-strong);
+}
+
+.custom-opening-option {
+  border-style: dashed;
 }
 
 .opening-search-empty {
@@ -455,7 +495,7 @@ textarea {
 
 .progress-bar div {
   height: 100%;
-  background: var(--text);
+  background: var(--accent);
   transition: width 0.2s ease;
 }
 
@@ -597,7 +637,7 @@ textarea {
 }
 
 .dynamic-analysis.playable {
-  border-left: 3px solid #22c55e;
+  border-left: 3px solid var(--accent);
   padding-left: 10px;
 }
 
@@ -1009,7 +1049,19 @@ textarea {
   }
 
   .hero h1 {
-    font-size: 42px;
+    font-size: 40px;
+  }
+
+  .brand-lockup {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .brand-mark {
+    width: 62px;
+    height: 62px;
+    flex-basis: 62px;
+    border-radius: 15px;
   }
 
   .hero p {
