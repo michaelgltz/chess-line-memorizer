@@ -8,8 +8,8 @@ import "./App.css";
 
 const STOCKFISH_PATH = "/stockfish/stockfish-18-lite-single.js";
 const ENGINE_DEPTH = 10;
-const OPPONENT_DELAY_MIN_MS = 500;
-const OPPONENT_DELAY_MAX_MS = 1000;
+const OPPONENT_DELAY_MIN_MS = 250;
+const OPPONENT_DELAY_MAX_MS = 500;
 const CORRECT_FEEDBACK_DELAY_MS = 850;
 const DRAGGING_PIECE_STYLE = {
   transform: "scale(1.1)",
