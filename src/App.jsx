@@ -8,9 +8,19 @@ import "./App.css";
 
 const STOCKFISH_PATH = "/stockfish/stockfish-18-lite-single.js";
 const ENGINE_DEPTH = 10;
-const OPPONENT_DELAY_MIN_MS = 1000;
-const OPPONENT_DELAY_MAX_MS = 3000;
+const OPPONENT_DELAY_MIN_MS = 500;
+const OPPONENT_DELAY_MAX_MS = 1000;
 const CORRECT_FEEDBACK_DELAY_MS = 850;
+const DRAGGING_PIECE_STYLE = {
+  transform: "scale(1.1)",
+  maxWidth: "min(18vw, 78px)",
+  maxHeight: "min(18vw, 78px)",
+  filter: "drop-shadow(0 10px 18px rgba(15, 23, 42, 0.35))",
+  zIndex: 40,
+};
+const DRAGGING_PIECE_GHOST_STYLE = {
+  opacity: 0.35,
+};
 
 const OPENINGS = [
   {
@@ -1125,7 +1135,7 @@ export default function App() {
     }
 
     setOpponentThinking(true);
-    const delay = OPPONENT_DELAY_MIN_MS + Math.floor(Math.random() * (OPPONENT_DELAY_MAX_MS - OPPONENT_DELAY_MIN_MS));
+    const delay = OPPONENT_DELAY_MIN_MS + Math.floor(Math.random() * (OPPONENT_DELAY_MAX_MS - OPPONENT_DELAY_MIN_MS + 1));
     const timer = setTimeout(() => {
       setOpponentThinking(false);
       playOpponentMove();
@@ -2058,6 +2068,8 @@ export default function App() {
     canDragPiece: isDraggablePiece,
     isDraggablePiece,
     squareStyles,
+    draggingPieceStyle: DRAGGING_PIECE_STYLE,
+    draggingPieceGhostStyle: DRAGGING_PIECE_GHOST_STYLE,
     animationDurationInMs: 320,
     snapToCursor: true,
     showNotation: true,
