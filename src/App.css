@@ -981,6 +981,10 @@ textarea {
   box-shadow: 0 0 0 1px var(--accent-soft);
 }
 
+.duplicate-variation-item {
+  opacity: 0.78;
+}
+
 .variation-title-row {
   display: flex;
   flex-wrap: wrap;
@@ -1004,6 +1008,18 @@ textarea {
 .active-line-pill {
   border-color: var(--accent);
   color: var(--accent-hover);
+}
+
+.duplicate-line-pill {
+  border-color: var(--border-strong);
+  color: var(--muted);
+}
+
+.duplicate-note {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .saved-variation-item code {

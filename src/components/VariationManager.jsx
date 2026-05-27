@@ -1,6 +1,7 @@
 export default function VariationManager({
-  builtInVariations = [],
+  builtInVariationRows = [],
   openingName,
+  savedVariationRows = [],
   savedForOpening,
   selectedOpeningId,
   selectedVariationIndex,
@@ -25,7 +26,12 @@ export default function VariationManager({
   onSelectVariation,
   onStartEditingSavedVariation,
 }) {
-  const savedVariationStartIndex = builtInVariations.length;
+  const duplicateSavedCount = savedVariationRows.filter((row) => row.duplicateOf).length;
+
+  function duplicateLabel(row) {
+    if (!row.duplicateOf) return "";
+    return row.duplicateOf.saved ? "Duplicate saved line" : "Already built in";
+  }
 
   return (
     <div className="variation-manager">
@@ -33,6 +39,9 @@ export default function VariationManager({
         <div>
           <h3>Variation Manager</h3>
           <p className="muted">Pick a built-in line or manage saved browser variations for {openingName}.</p>
+          {duplicateSavedCount > 0 && (
+            <p className="muted">Duplicate saved line{duplicateSavedCount === 1 ? "" : "s"} stay stored here, but are skipped during random practice.</p>
+          )}
         </div>
       </div>
 
@@ -49,27 +58,32 @@ export default function VariationManager({
       <div className="manager-grid">
         <div className="manager-section">
           <h4>Built-in lines</h4>
-          {builtInVariations.length === 0 ? (
+          {builtInVariationRows.length === 0 ? (
             <p className="muted">No built-in lines for this opening yet.</p>
           ) : (
             <div className="saved-variation-list">
-              {builtInVariations.map((variation, index) => (
+              {builtInVariationRows.map((row) => (
                 <div
-                  key={`${variation.line}-${index}`}
-                  className={`saved-variation-item ${selectedVariationIndex === index ? "selected-variation-item" : ""}`}
+                  key={`${row.variation.line}-${row.sourceIndex}`}
+                  className={`saved-variation-item ${row.duplicateOf ? "duplicate-variation-item" : ""} ${!row.duplicateOf && selectedVariationIndex === row.playableIndex ? "selected-variation-item" : ""}`}
                 >
                   <div>
                     <div className="variation-title-row">
-                      <strong>{variation.name}</strong>
-                      {index === 0 && <span className="line-type-pill">Main line</span>}
-                      {selectedVariationIndex === index && <span className="line-type-pill active-line-pill">Current</span>}
+                      <strong>{row.variation.name}</strong>
+                      {row.sourceIndex === 0 && <span className="line-type-pill">Main line</span>}
+                      {row.duplicateOf && <span className="line-type-pill duplicate-line-pill">{duplicateLabel(row)}</span>}
+                      {!row.duplicateOf && selectedVariationIndex === row.playableIndex && <span className="line-type-pill active-line-pill">Current</span>}
                     </div>
-                    <code>{variation.line}</code>
+                    <code>{row.variation.line}</code>
                   </div>
                   <div className="saved-variation-actions">
-                    <button type="button" onClick={() => onSelectVariation(index)}>
-                      {selectedVariationIndex === index ? "Restart this line" : "Practice"}
-                    </button>
+                    {row.duplicateOf ? (
+                      <span className="duplicate-note">Uses {row.duplicateOf.name} for practice.</span>
+                    ) : (
+                      <button type="button" onClick={() => onSelectVariation(row.playableIndex)}>
+                        {selectedVariationIndex === row.playableIndex ? "Restart this line" : "Practice"}
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -81,12 +95,12 @@ export default function VariationManager({
             <p className="muted">No saved variations for this opening yet.</p>
           ) : (
             <div className="saved-variation-list">
-              {savedForOpening.map((variation, index) => (
+              {savedVariationRows.map((row) => (
                 <div
-                  key={`${variation.line}-${index}`}
-                  className={`saved-variation-item ${selectedVariationIndex === savedVariationStartIndex + index ? "selected-variation-item" : ""}`}
+                  key={`${row.variation.line}-${row.sourceIndex}`}
+                  className={`saved-variation-item ${row.duplicateOf ? "duplicate-variation-item" : ""} ${!row.duplicateOf && selectedVariationIndex === row.playableIndex ? "selected-variation-item" : ""}`}
                 >
-                  {editingVariationIndex === index ? (
+                  {editingVariationIndex === row.sourceIndex ? (
                     <div className="saved-variation-edit">
                       <label>Variation name</label>
                       <input
@@ -108,18 +122,22 @@ export default function VariationManager({
                     <>
                       <div>
                         <div className="variation-title-row">
-                          <strong>{variation.name}</strong>
-                          {selectedVariationIndex === savedVariationStartIndex + index && <span className="line-type-pill active-line-pill">Current</span>}
+                          <strong>{row.variation.name}</strong>
+                          {row.duplicateOf && <span className="line-type-pill duplicate-line-pill">{duplicateLabel(row)}</span>}
+                          {!row.duplicateOf && selectedVariationIndex === row.playableIndex && <span className="line-type-pill active-line-pill">Current</span>}
                         </div>
-                        <code>{variation.line}</code>
+                        <code>{row.variation.line}</code>
+                        {row.duplicateOf && <p className="duplicate-note">Already covered by {row.duplicateOf.name}, so this line is skipped in random practice.</p>}
                       </div>
                       <div className="saved-variation-actions">
-                        <button type="button" onClick={() => onSelectVariation(savedVariationStartIndex + index)}>
-                          {selectedVariationIndex === savedVariationStartIndex + index ? "Restart this line" : "Practice"}
-                        </button>
-                        <button type="button" onClick={() => onStartEditingSavedVariation(index)}>Edit</button>
-                        <button type="button" onClick={() => onDuplicateSavedVariation(index)}>Duplicate</button>
-                        <button type="button" className="danger-utility" onClick={() => onDeleteSavedVariation(selectedOpeningId, index)}>Delete</button>
+                        {!row.duplicateOf && (
+                          <button type="button" onClick={() => onSelectVariation(row.playableIndex)}>
+                            {selectedVariationIndex === row.playableIndex ? "Restart this line" : "Practice"}
+                          </button>
+                        )}
+                        <button type="button" onClick={() => onStartEditingSavedVariation(row.sourceIndex)}>Edit</button>
+                        <button type="button" onClick={() => onDuplicateSavedVariation(row.sourceIndex)}>Duplicate</button>
+                        <button type="button" className="danger-utility" onClick={() => onDeleteSavedVariation(selectedOpeningId, row.sourceIndex)}>Delete</button>
                       </div>
                     </>
                   )}

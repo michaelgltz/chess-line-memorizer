@@ -552,6 +552,52 @@ function buildVariationEntries(variations) {
   }));
 }
 
+function variationDedupeKey(line) {
+  return parseMoves(line).map(normalizeMove).join(" ");
+}
+
+function buildVariationCatalog(builtInVariations = [], savedVariations = []) {
+  const playableVariations = [];
+  const keyToPlayableIndex = new Map();
+
+  function addPlayableVariation(variation, source, sourceIndex) {
+    const key = variationDedupeKey(variation.line);
+    const fallbackKey = `${source}:${sourceIndex}:${variation.line || ""}`;
+    const dedupeKey = key || fallbackKey;
+    const existingPlayableIndex = keyToPlayableIndex.get(dedupeKey);
+
+    if (existingPlayableIndex !== undefined) {
+      return {
+        variation,
+        sourceIndex,
+        playableIndex: existingPlayableIndex,
+        duplicateOf: playableVariations[existingPlayableIndex],
+      };
+    }
+
+    const playableIndex = playableVariations.length;
+    const playableVariation = source === "saved" ? { ...variation, saved: true } : variation;
+    keyToPlayableIndex.set(dedupeKey, playableIndex);
+    playableVariations.push(playableVariation);
+
+    return {
+      variation,
+      sourceIndex,
+      playableIndex,
+      duplicateOf: null,
+    };
+  }
+
+  const builtInRows = builtInVariations.map((variation, index) => addPlayableVariation(variation, "built-in", index));
+  const savedRows = savedVariations.map((variation, index) => addPlayableVariation(variation, "saved", index));
+
+  return {
+    playableVariations,
+    builtInRows,
+    savedRows,
+  };
+}
+
 function createMoveTreeNode() {
   return {
     childMap: new Map(),
@@ -1141,9 +1187,12 @@ export default function App() {
 
   const selectedOpening = OPENINGS.find((opening) => opening.id === selectedOpeningId) || OPENINGS[0];
   const savedForOpening = savedVariations[selectedOpeningId] || [];
-  const availableVariations = selectedOpeningId === "custom"
-    ? []
-    : [...(selectedOpening.variations || []), ...savedForOpening];
+  const variationCatalog = useMemo(() => (
+    selectedOpeningId === "custom"
+      ? buildVariationCatalog([], [])
+      : buildVariationCatalog(selectedOpening.variations || [], savedForOpening)
+  ), [savedForOpening, selectedOpening, selectedOpeningId]);
+  const availableVariations = variationCatalog.playableVariations;
   const variationEntries = useMemo(() => buildVariationEntries(availableVariations), [availableVariations]);
   const moveTree = useMemo(() => buildMoveTree(variationEntries), [variationEntries]);
   const selectedVariation = availableVariations[selectedVariationIndex] || availableVariations[0];
@@ -1314,7 +1363,7 @@ export default function App() {
     const opening = OPENINGS.find((o) => o.id === openingId) || OPENINGS[0];
     const variations = openingId === "custom"
       ? []
-      : [...(opening.variations || []), ...(savedVariations[openingId] || [])];
+      : buildVariationCatalog(opening.variations || [], savedVariations[openingId] || []).playableVariations;
 
     if (openingId !== "custom" && variations.length > 0) {
       const nextVariationIndex = forcedVariationIndex !== null
@@ -1365,7 +1414,10 @@ export default function App() {
     if (!nextOpening) return;
 
     setSelectedOpeningId(nextOpening.id);
-    const nextVariations = [...(nextOpening.variations || []), ...(savedVariations[nextOpening.id] || [])];
+    const nextVariations = buildVariationCatalog(
+      nextOpening.variations || [],
+      savedVariations[nextOpening.id] || [],
+    ).playableVariations;
     const nextVariationIndex = nextVariations.length ? randomIndex(nextVariations.length) : 0;
     setSelectedVariationIndex(nextVariationIndex);
     setPlannedMoves(parseMoves(nextVariations[nextVariationIndex]?.line || ""));
@@ -1477,7 +1529,17 @@ export default function App() {
       return;
     }
 
-    saveVariationToStorage({ name, line });
+    const saveResult = saveVariationToStorage({ name, line });
+    if (!saveResult.saved) {
+      setFeedback({
+        type: "wrong",
+        text: saveResult.reason === "built-in"
+          ? `That line is already included as a built-in line: ${saveResult.duplicateName}.`
+          : `That line is already saved as: ${saveResult.duplicateName}.`,
+      });
+      return;
+    }
+
     setManualVariationName("");
     setManualVariationLine("");
     setFeedback({ type: "correct", text: `Added saved variation: ${name}` });
@@ -1517,28 +1579,30 @@ export default function App() {
       return;
     }
 
-    setSavedVariations((prev) => {
-      const existing = prev[selectedOpeningId] || [];
-      const nextForOpening = existing.map((variation, index) => (
-        index === editingVariationIndex
-          ? {
-              ...variation,
-              name,
-              line,
-              updatedAt: new Date().toISOString(),
-            }
-          : variation
-      ));
+    const editingRow = variationCatalog.savedRows.find((row) => row.sourceIndex === editingVariationIndex);
+    const editedWasSelected = !editingRow?.duplicateOf && selectedVariationIndex === editingRow?.playableIndex;
+    const nextForOpening = savedForOpening.map((variation, index) => (
+      index === editingVariationIndex
+        ? {
+            ...variation,
+            name,
+            line,
+            updatedAt: new Date().toISOString(),
+          }
+        : variation
+    ));
 
-      return {
-        ...prev,
-        [selectedOpeningId]: nextForOpening,
-      };
-    });
+    setSavedVariations((prev) => ({
+      ...prev,
+      [selectedOpeningId]: nextForOpening,
+    }));
 
-    const builtInCount = selectedOpening.variations?.length || 0;
-    if (selectedVariationIndex === builtInCount + editingVariationIndex) {
-      setPlannedMoves(parseMoves(line));
+    if (editedWasSelected) {
+      const nextCatalog = buildVariationCatalog(selectedOpening.variations || [], nextForOpening);
+      const nextEditingRow = nextCatalog.savedRows.find((row) => row.sourceIndex === editingVariationIndex);
+      const nextVariation = nextCatalog.playableVariations[nextEditingRow?.playableIndex] || nextCatalog.playableVariations[0];
+      setSelectedVariationIndex(nextEditingRow?.playableIndex || 0);
+      setPlannedMoves(parseMoves(nextVariation?.line || line));
     }
 
     cancelEditingSavedVariation();
@@ -1670,7 +1734,25 @@ export default function App() {
   }
 
   function saveVariationToStorage({ name, line }) {
-    if (selectedOpeningId === "custom") return false;
+    if (selectedOpeningId === "custom") return { saved: false, reason: "custom", duplicateName: "" };
+
+    const lineKey = variationDedupeKey(line);
+    const builtInDuplicate = lineKey
+      ? (selectedOpening.variations || []).find((variation) => variationDedupeKey(variation.line) === lineKey)
+      : null;
+
+    if (builtInDuplicate) {
+      return { saved: false, reason: "built-in", duplicateName: builtInDuplicate.name || "built-in line" };
+    }
+
+    const existing = savedVariations[selectedOpeningId] || [];
+    const savedDuplicate = lineKey
+      ? existing.find((variation) => variationDedupeKey(variation.line) === lineKey)
+      : existing.find((variation) => variation.line === line);
+
+    if (savedDuplicate) {
+      return { saved: false, reason: "saved", duplicateName: savedDuplicate.name || "saved variation" };
+    }
 
     const newVariation = {
       name,
@@ -1680,19 +1762,14 @@ export default function App() {
       createdAt: new Date().toISOString(),
     };
 
-    let saved = false;
     setSavedVariations((prev) => {
-      const existing = prev[selectedOpeningId] || [];
-      const alreadyExists = existing.some((variation) => variation.line === line);
-      if (alreadyExists) return prev;
-      saved = true;
       return {
         ...prev,
-        [selectedOpeningId]: [...existing, newVariation],
+        [selectedOpeningId]: [...(prev[selectedOpeningId] || []), newVariation],
       };
     });
 
-    return saved;
+    return { saved: true, reason: "", duplicateName: "" };
   }
 
   function savePlayableAlternative() {
@@ -1702,11 +1779,13 @@ export default function App() {
     const newLine = formatLineWithMoveNumbers(newMoves);
     const variationName = `Saved alternate: ${dynamicAnalysis.playedSan} on move ${moveNumberForIndex(currentIndex)}`;
 
-    saveVariationToStorage({ name: variationName, line: newLine });
+    const saveResult = saveVariationToStorage({ name: variationName, line: newLine });
 
     setFeedback({
-      type: "correct",
-      text: `Saved ${dynamicAnalysis.playedSan} as a new variation under ${selectedOpening.name}.`,
+      type: saveResult.saved ? "correct" : "wrong",
+      text: saveResult.saved
+        ? `Saved ${dynamicAnalysis.playedSan} as a new variation under ${selectedOpening.name}.`
+        : `That alternate is already covered by ${saveResult.duplicateName}.`,
     });
   }
 
@@ -1738,9 +1817,14 @@ export default function App() {
 
     const allMoves = [...extensionBaseMoves, ...extensionMoves];
     const line = formatLineWithMoveNumbers(allMoves);
-    saveVariationToStorage({ name: extensionName || "Extended saved variation", line });
+    const saveResult = saveVariationToStorage({ name: extensionName || "Extended saved variation", line });
 
-    setFeedback({ type: "correct", text: `Saved extended variation: ${line}` });
+    setFeedback({
+      type: saveResult.saved ? "correct" : "wrong",
+      text: saveResult.saved
+        ? `Saved extended variation: ${line}`
+        : `That extended line is already covered by ${saveResult.duplicateName}.`,
+    });
     setExtensionMode(false);
     setExtensionFen(null);
     setExtensionBaseMoves([]);
@@ -2223,6 +2307,7 @@ export default function App() {
         onClearAllSavedVariations={clearAllSavedVariations}
         onClearSavedVariationsForOpening={clearSavedVariationsForOpening}
         onCustomLineTextChange={setCustomLineText}
+        variationCatalog={variationCatalog}
         onDeleteSavedVariation={deleteSavedVariation}
         onDuplicateSavedVariation={duplicateSavedVariation}
         onCancelEditingSavedVariation={cancelEditingSavedVariation}

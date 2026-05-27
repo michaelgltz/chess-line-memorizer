@@ -28,6 +28,7 @@ export default function PracticePanel({
   selectedVariationIndex,
   showCustomEditor,
   showVariationManager,
+  variationCatalog,
   onAddManualVariation,
   onChooseOpening,
   onClearAllSavedVariations,
@@ -210,8 +211,9 @@ export default function PracticePanel({
 
       {showVariationManager && selectedOpeningId !== "custom" && (
         <VariationManager
-          builtInVariations={selectedOpening.variations || []}
+          builtInVariationRows={variationCatalog.builtInRows}
           openingName={selectedOpening.name}
+          savedVariationRows={variationCatalog.savedRows}
           savedForOpening={savedForOpening}
           selectedOpeningId={selectedOpeningId}
           selectedVariationIndex={selectedVariationIndex}
