@@ -536,11 +536,13 @@ textarea {
   border: 1px solid var(--border);
 }
 
-.move-chip:hover {
+.move-chip:hover,
+.freeplay-chip:hover {
   border-color: #64748b;
 }
 
-.move-chip.selected {
+.move-chip.selected,
+.freeplay-chip.selected {
   background: var(--text);
   color: var(--bg);
 }

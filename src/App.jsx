@@ -1091,6 +1091,7 @@ export default function App() {
   const [quizSide, setQuizSide] = useState("White");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [viewIndex, setViewIndex] = useState(null);
+  const [freePlayViewIndex, setFreePlayViewIndex] = useState(null);
   const [feedback, setFeedback] = useState(null);
   const [dynamicAnalysis, setDynamicAnalysis] = useState(null);
   const [dynamicAnalysisStatus, setDynamicAnalysisStatus] = useState("idle");
@@ -1153,12 +1154,16 @@ export default function App() {
   const game = useMemo(() => makeGameAtMove(moves, currentIndex), [moves, currentIndex]);
   const actualFen = game.fen();
   const reviewGame = useMemo(() => (viewIndex === null ? null : makeGameAtMove(moves, viewIndex)), [moves, viewIndex]);
+  const freePlayReviewGame = useMemo(() => {
+    if (freePlayViewIndex === null) return null;
+    return makeGameAtMove([...moves, ...freePlayMoves], moves.length + freePlayViewIndex);
+  }, [freePlayMoves, freePlayViewIndex, moves]);
   const lessonGame = useMemo(() => {
     if (!lesson) return null;
     return makeGameFromFenAndMoves(lesson.startFen, lesson.moves, lessonStep);
   }, [lesson, lessonStep]);
 
-  const shownFen = lessonGame?.fen() || reviewGame?.fen() || previewFen || extensionFen || freePlayFen || actualFen;
+  const shownFen = lessonGame?.fen() || freePlayReviewGame?.fen() || reviewGame?.fen() || previewFen || extensionFen || freePlayFen || actualFen;
   const shownGame = useMemo(() => new Chess(shownFen), [shownFen]);
   const sideToMove = shownGame.turn();
   latestSideToMoveRef.current = sideToMove;
@@ -1170,7 +1175,7 @@ export default function App() {
   const currentSide = sideForIndex(currentIndex);
   const isQuizTurn = currentSide === quizSide;
   const isDone = !currentMove && currentIndex >= moves.length;
-  const isReviewing = viewIndex !== null || lesson !== null;
+  const isReviewing = viewIndex !== null || freePlayViewIndex !== null || lesson !== null;
   const progress = moves.length ? Math.round((Math.min(currentIndex, moves.length) / moves.length) * 100) : 0;
   const evalHeight = whiteEvalHeight(engineEval);
   const historyItems = buildHistoryItems(moves, currentIndex);
@@ -1296,6 +1301,7 @@ export default function App() {
 
   function clearReview() {
     setViewIndex(null);
+    setFreePlayViewIndex(null);
     setLesson(null);
     setLessonStep(0);
   }
@@ -1323,6 +1329,7 @@ export default function App() {
 
     setCurrentIndex(0);
     setViewIndex(null);
+    setFreePlayViewIndex(null);
     setFeedback(null);
     setDynamicAnalysis(null);
     setDynamicAnalysisStatus("idle");
@@ -1365,6 +1372,7 @@ export default function App() {
     setShowCustomEditor(false);
     setCurrentIndex(0);
     setViewIndex(null);
+    setFreePlayViewIndex(null);
     setFeedback(null);
     setDynamicAnalysis(null);
     setDynamicAnalysisStatus("idle");
@@ -1721,6 +1729,7 @@ export default function App() {
     setSelectedSquare(null);
     setPreviewFen(null);
     setViewIndex(null);
+    setFreePlayViewIndex(null);
     setLesson(null);
   }
 
@@ -1853,6 +1862,7 @@ export default function App() {
     setSelectedSquare(null);
     setPreviewFen(null);
     setViewIndex(null);
+    setFreePlayViewIndex(null);
     setLesson(null);
   }
 
@@ -1860,6 +1870,7 @@ export default function App() {
     setFreePlayMode(false);
     setFreePlayFen(null);
     setFreePlayMoves([]);
+    setFreePlayViewIndex(null);
     setExtensionMode(false);
     setExtensionFen(null);
     setExtensionBaseMoves([]);
@@ -1888,6 +1899,7 @@ export default function App() {
 
     setFreePlayFen(freeGame.fen());
     setFreePlayMoves((prev) => [...prev, move.san]);
+    setFreePlayViewIndex(null);
     setFeedback({ type: "correct", text: `Free play: ${move.san}` });
     setSelectedSquare(null);
     return true;
@@ -1925,6 +1937,7 @@ export default function App() {
     });
     setLessonStep(0);
     setViewIndex(null);
+    setFreePlayViewIndex(null);
   }
 
   function tryPlayerMove(sourceSquare, targetSquare) {
@@ -2078,7 +2091,7 @@ export default function App() {
   function handlePieceDrop(firstArg, secondArg) {
     const sourceSquare = typeof firstArg === "object" ? firstArg.sourceSquare : firstArg;
     const targetSquare = typeof firstArg === "object" ? firstArg.targetSquare : secondArg;
-    if (!sourceSquare || !targetSquare) return false;
+    if (!sourceSquare || !targetSquare || isReviewing) return false;
     setSelectedSquare(null);
 
     if (sourceSquare === targetSquare) return true;
@@ -2248,6 +2261,7 @@ export default function App() {
             filteredExtensionTopMoves={filteredExtensionTopMoves}
             freePlayMode={freePlayMode}
             freePlayMoves={freePlayMoves}
+            freePlayViewIndex={freePlayViewIndex}
             historyItems={historyItems}
             isDone={isDone}
             isQuizTurn={isQuizTurn}
@@ -2279,6 +2293,7 @@ export default function App() {
             onSetExtensionMoveMode={setExtensionMoveMode}
             onSetExtensionName={setExtensionName}
             onSetExtensionThresholdCp={setExtensionThresholdCp}
+            onSetFreePlayViewIndex={setFreePlayViewIndex}
             onSetLesson={setLesson}
             onSetLessonStep={setLessonStep}
             onSetShowAnswer={setShowAnswer}

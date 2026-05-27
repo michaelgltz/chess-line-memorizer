@@ -16,6 +16,7 @@ export default function CurrentLineCard({
   filteredExtensionTopMoves,
   freePlayMode,
   freePlayMoves,
+  freePlayViewIndex,
   historyItems,
   isDone,
   isQuizTurn,
@@ -47,6 +48,7 @@ export default function CurrentLineCard({
   onSetExtensionMoveMode,
   onSetExtensionName,
   onSetExtensionThresholdCp,
+  onSetFreePlayViewIndex,
   onSetLesson,
   onSetLessonStep,
   onSetShowAnswer,
@@ -90,6 +92,7 @@ export default function CurrentLineCard({
                 className={`move-chip ${viewIndex === item.index + 1 ? "selected" : ""}`}
                 onClick={() => {
                   onSetViewIndex(item.index + 1);
+                  onSetFreePlayViewIndex(null);
                   onSetLesson(null);
                 }}
               >
@@ -115,9 +118,19 @@ export default function CurrentLineCard({
             <div className="label">Free play continuation</div>
             <div className="move-history">
               {freePlayMoves.map((move, index) => (
-                <span key={`${move}-${index}`} className="freeplay-chip">
-                  {index % 2 === 0 && `${Math.floor(index / 2) + 1}. `}{move}
-                </span>
+                <button
+                  key={`${move}-${index}`}
+                  className={`freeplay-chip ${freePlayViewIndex === index + 1 ? "selected" : ""}`}
+                  onClick={() => {
+                    onSetFreePlayViewIndex(index + 1);
+                    onSetViewIndex(null);
+                    onSetLesson(null);
+                  }}
+                >
+                  {(moves.length + index) % 2 === 0 && `${moveNumberForIndex(moves.length + index)}. `}
+                  {(moves.length + index) % 2 !== 0 && index === 0 && `${moveNumberForIndex(moves.length + index)}... `}
+                  {move}
+                </button>
               ))}
             </div>
           </div>
@@ -209,6 +222,12 @@ export default function CurrentLineCard({
               <button onClick={onCancelExtensionMode}>Cancel</button>
             </div>
           </div>
+        ) : isReviewing ? (
+          <div className="answer-box">
+            <p>You are reviewing a past position.</p>
+            {branchSummary.length > 1 && <BranchSummary branches={branchSummary} />}
+            <button onClick={onClearReview}>Return to current position</button>
+          </div>
         ) : freePlayMode ? (
           <div className="success-box">
             <strong>Free play mode.</strong>
@@ -228,12 +247,6 @@ export default function CurrentLineCard({
           </div>
         ) : !isQuizTurn ? (
           <div className="opponent-box"><p>Opponent to move. {opponentThinking ? "Thinking..." : "Playing move..."}</p></div>
-        ) : isReviewing ? (
-          <div className="answer-box">
-            <p>You are reviewing a past position.</p>
-            {branchSummary.length > 1 && <BranchSummary branches={branchSummary} />}
-            <button onClick={onClearReview}>Return to current position</button>
-          </div>
         ) : (
           <div className="answer-box">
             <p>Your move: <strong>Move {moveNumberForIndex(currentIndex)} for {currentSide}</strong></p>
