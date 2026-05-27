@@ -105,7 +105,7 @@ const OPENINGS = [
   },
   {
     id: "ruy-lopez-white",
-    name: "Ruy Lopez",
+    name: "Ruy Lopez (Spanish Game)",
     category: "White repertoire",
     description: "Train classical Spanish positions from the main line, Berlin, and Exchange structures.",
     variations: [
@@ -1558,12 +1558,13 @@ export default function App() {
     setFeedback({ type: "correct", text: `Duplicated saved variation: ${copy.name}` });
   }
 
-  function selectSavedVariation(variationIndex) {
-    const builtInCount = selectedOpening.variations?.length || 0;
-    const nextVariationIndex = builtInCount + variationIndex;
-    setSelectedVariationIndex(nextVariationIndex);
-    setPlannedMoves(parseMoves(savedForOpening[variationIndex]?.line || ""));
-    resetQuiz(false, selectedOpeningId, nextVariationIndex);
+  function selectVariation(variationIndex) {
+    const variation = availableVariations[variationIndex];
+    if (!variation) return;
+
+    setSelectedVariationIndex(variationIndex);
+    setPlannedMoves(parseMoves(variation.line || ""));
+    resetQuiz(false, selectedOpeningId, variationIndex);
     setShowVariationManager(false);
   }
 
@@ -2201,6 +2202,7 @@ export default function App() {
         savedForOpening={savedForOpening}
         selectedOpening={selectedOpening}
         selectedOpeningId={selectedOpeningId}
+        selectedVariationIndex={selectedVariationIndex}
         showCustomEditor={showCustomEditor}
         showVariationManager={showVariationManager}
         onAddManualVariation={addManualVariation}
@@ -2220,7 +2222,7 @@ export default function App() {
         onManualVariationNameChange={setManualVariationName}
         onResetMainLine={resetToMainLine}
         onResetQuiz={resetQuiz}
-        onSelectSavedVariation={selectSavedVariation}
+        onSelectVariation={selectVariation}
         onSetQuizSide={setQuizSide}
         onStartEditingSavedVariation={startEditingSavedVariation}
         onToggleVariationManager={() => setShowVariationManager((value) => !value)}

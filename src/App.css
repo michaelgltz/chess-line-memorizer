@@ -938,6 +938,10 @@ textarea {
   margin: 0 0 12px;
 }
 
+.manager-section h4:not(:first-child) {
+  margin-top: 18px;
+}
+
 .manager-section label {
   display: block;
   font-weight: 700;
@@ -968,6 +972,36 @@ textarea {
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 12px;
+}
+
+.selected-variation-item {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-soft);
+}
+
+.variation-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.line-type-pill {
+  display: inline-flex;
+  width: fit-content;
+  border: 1px solid var(--border-strong);
+  background: var(--panel-dark);
+  color: var(--muted);
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.active-line-pill {
+  border-color: var(--accent);
+  color: var(--accent-hover);
 }
 
 .saved-variation-item code {

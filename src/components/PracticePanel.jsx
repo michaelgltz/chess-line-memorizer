@@ -25,6 +25,7 @@ export default function PracticePanel({
   savedForOpening,
   selectedOpening,
   selectedOpeningId,
+  selectedVariationIndex,
   showCustomEditor,
   showVariationManager,
   onAddManualVariation,
@@ -44,7 +45,7 @@ export default function PracticePanel({
   onResetMainLine,
   onResetQuiz,
   onSaveEditedVariation,
-  onSelectSavedVariation,
+  onSelectVariation,
   onSetQuizSide,
   onStartEditingSavedVariation,
   onToggleVariationManager,
@@ -85,7 +86,7 @@ export default function PracticePanel({
       <div className="practice-header clean-practice-header">
         <div className="practice-title-block">
           <h2>Practice...</h2>
-          <p className="muted">Choose an opening and which color to play, then drill a main line or a random saved variation.</p>
+          <p className="muted">Choose an opening and which color to play, then drill a main line, specific line, or random variation.</p>
         </div>
       </div>
 
@@ -209,9 +210,11 @@ export default function PracticePanel({
 
       {showVariationManager && selectedOpeningId !== "custom" && (
         <VariationManager
+          builtInVariations={selectedOpening.variations || []}
           openingName={selectedOpening.name}
           savedForOpening={savedForOpening}
           selectedOpeningId={selectedOpeningId}
+          selectedVariationIndex={selectedVariationIndex}
           editingVariationIndex={editingVariationIndex}
           editingVariationName={editingVariationName}
           editingVariationLine={editingVariationLine}
@@ -230,7 +233,7 @@ export default function PracticePanel({
           onManualVariationLineChange={onManualVariationLineChange}
           onManualVariationNameChange={onManualVariationNameChange}
           onSaveEditedVariation={onSaveEditedVariation}
-          onSelectSavedVariation={onSelectSavedVariation}
+          onSelectVariation={onSelectVariation}
           onStartEditingSavedVariation={onStartEditingSavedVariation}
         />
       )}
