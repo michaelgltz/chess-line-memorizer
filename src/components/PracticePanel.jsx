@@ -21,6 +21,8 @@ export default function PracticePanel({
   manualVariationLine,
   manualVariationName,
   openings,
+  practiceMode,
+  practiceModes,
   quizSide,
   savedForOpening,
   selectedOpening,
@@ -28,6 +30,7 @@ export default function PracticePanel({
   selectedVariationIndex,
   showCustomEditor,
   showVariationManager,
+  trainingSummary,
   variationCatalog,
   onAddManualVariation,
   onChooseOpening,
@@ -47,6 +50,7 @@ export default function PracticePanel({
   onResetQuiz,
   onSaveEditedVariation,
   onSelectVariation,
+  onSetPracticeMode,
   onSetQuizSide,
   onStartEditingSavedVariation,
   onToggleVariationManager,
@@ -75,6 +79,7 @@ export default function PracticePanel({
   const customMatchesSearch = CUSTOM_OPTION_SEARCH_TEXT.includes(openingSearchText.trim().toLowerCase());
   const showCustomOption = !openingSearchText.trim() || customMatchesSearch;
   const selectedOpeningLabel = selectedOpeningId === "custom" ? "Custom Practice - paste your own line" : selectedOpening.name;
+  const selectedPracticeMode = practiceModes.find((mode) => mode.id === practiceMode) || practiceModes[0];
 
   function chooseOpeningFromPicker(openingId) {
     onChooseOpening(openingId);
@@ -93,13 +98,43 @@ export default function PracticePanel({
 
       <div className="practice-actions refined-actions">
         <button className="primary-action" onClick={onResetMainLine}>Restart main line</button>
-        <button onClick={() => onResetQuiz(true)}>Restart random variation</button>
+        <button onClick={() => onResetQuiz(true)}>Start {selectedPracticeMode.label}</button>
         <div className="utility-actions">
           <button className="utility-button" onClick={onToggleVariationManager}>
             {showVariationManager ? "Hide manager" : "Variation manager"}
           </button>
         </div>
       </div>
+
+      {selectedOpeningId !== "custom" && (
+        <div className="practice-memory-panel">
+          <div className="practice-memory-header">
+            <div>
+              <span className="eyebrow">Training memory</span>
+              <strong>{selectedPracticeMode.description}</strong>
+            </div>
+            <div className="training-stats-grid" aria-label="Training memory stats">
+              <span><strong>{trainingSummary.positions}</strong> positions</span>
+              <span><strong>{trainingSummary.weak}</strong> weak</span>
+              <span><strong>{trainingSummary.due}</strong> due</span>
+              <span><strong>{trainingSummary.accuracy ?? "—"}{trainingSummary.accuracy !== null ? "%" : ""}</strong> accuracy</span>
+            </div>
+          </div>
+          <div className="practice-mode-options" role="group" aria-label="Practice mode">
+            {practiceModes.map((mode) => (
+              <button
+                key={mode.id}
+                type="button"
+                className={`practice-mode-option ${practiceMode === mode.id ? "active" : ""}`}
+                onClick={() => onSetPracticeMode(mode.id)}
+              >
+                <span>{mode.label}</span>
+                <small>{mode.description}</small>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="opening-select-row">
         <label htmlFor="opening-picker">Opening</label>
@@ -192,7 +227,7 @@ export default function PracticePanel({
             className={quizSide === "White" ? "active" : ""}
             onClick={() => {
               onSetQuizSide("White");
-              onResetQuiz(true);
+              onResetQuiz(true, undefined, null, "White");
             }}
           >
             White
@@ -201,7 +236,7 @@ export default function PracticePanel({
             className={quizSide === "Black" ? "active" : ""}
             onClick={() => {
               onSetQuizSide("Black");
-              onResetQuiz(true);
+              onResetQuiz(true, undefined, null, "Black");
             }}
           >
             Black

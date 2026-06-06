@@ -43,6 +43,7 @@ export default function CurrentLineCard({
   onClearReview,
   onOpenLesson,
   onResetQuiz,
+  onRevealAnswer,
   onSaveExtendedVariation,
   onSavePlayableAlternative,
   onSetExtensionMoveMode,
@@ -51,7 +52,6 @@ export default function CurrentLineCard({
   onSetFreePlayViewIndex,
   onSetLesson,
   onSetLessonStep,
-  onSetShowAnswer,
   onSetViewIndex,
   onStartExtensionFromPlayableAlternative,
   onStartFreePlay,
@@ -252,7 +252,7 @@ export default function CurrentLineCard({
             <p>Your move: <strong>Move {moveNumberForIndex(currentIndex)} for {currentSide}</strong></p>
             <p className="muted">Drag and drop the piece where it belongs. Click-to-move still works too.</p>
             <div className="hint-row">
-              {wrongAttemptsThisMove > 0 && <button type="button" onClick={() => onSetShowAnswer(true)}>Show answer</button>}
+              {wrongAttemptsThisMove > 0 && !showAnswer && <button type="button" onClick={onRevealAnswer}>Show answer</button>}
               {feedback?.explanation?.seeLine && <button type="button" onClick={() => onOpenLesson(feedback.explanation)}>See line</button>}
               {showAnswer && <button type="button" onClick={onAdvance}>Skip to next move</button>}
             </div>

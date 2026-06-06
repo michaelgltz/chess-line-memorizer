@@ -7,6 +7,7 @@ import PracticePanel from "./components/PracticePanel.jsx";
 import "./App.css";
 
 const STOCKFISH_PATH = "/stockfish/stockfish-18-lite-single.js";
+const TRAINING_MEMORY_STORAGE_KEY = "opening-lab-training-memory";
 const ENGINE_DEPTH = 10;
 const OPPONENT_DELAY_MIN_MS = 250;
 const OPPONENT_DELAY_MAX_MS = 500;
@@ -21,6 +22,25 @@ const DRAGGING_PIECE_STYLE = {
 const DRAGGING_PIECE_GHOST_STYLE = {
   opacity: 0.35,
 };
+const PRACTICE_MODES = [
+  {
+    id: "random",
+    label: "Random",
+    description: "Mix all unique lines.",
+  },
+  {
+    id: "weak",
+    label: "Weak spots",
+    description: "Favor lines with missed positions.",
+  },
+  {
+    id: "due",
+    label: "Due review",
+    description: "Favor positions ready to revisit.",
+  },
+];
+const REVIEW_DAY_MS = 24 * 60 * 60 * 1000;
+const REVIEW_INTERVAL_DAYS = [0, 1, 2, 4, 7, 14, 30];
 
 const OPENINGS = [
   {
@@ -598,6 +618,134 @@ function buildVariationCatalog(builtInVariations = [], savedVariations = []) {
   };
 }
 
+function trainingFenKey(fen) {
+  return fen.split(" ").slice(0, 4).join(" ");
+}
+
+function trainingPositionKey(openingId, fen, expectedSan) {
+  return `${openingId}|${trainingFenKey(fen)}|${normalizeMove(expectedSan)}`;
+}
+
+function nextReviewAt(now, outcome, strength) {
+  if (outcome === "wrong" || outcome === "answer") return now;
+  if (outcome === "correct-after-retry") return now + REVIEW_DAY_MS;
+
+  const days = REVIEW_INTERVAL_DAYS[Math.max(0, Math.min(strength, REVIEW_INTERVAL_DAYS.length - 1))];
+  return now + days * REVIEW_DAY_MS;
+}
+
+function isWeakTrainingRecord(record) {
+  if (!record) return false;
+  const misses = (record.mistakes || 0) + (record.answerReveals || 0);
+  if (!misses) return false;
+  return (record.strength || 0) <= 2 || misses >= Math.max(2, record.correctFirstTry || 0);
+}
+
+function isDueTrainingRecord(record, now = Date.now()) {
+  return !!record?.nextReviewAt && record.nextReviewAt <= now;
+}
+
+function summarizeTrainingMemory(trainingMemory, openingId) {
+  const records = Object.values(trainingMemory).filter((record) => record.openingId === openingId);
+  const attempts = records.reduce((sum, record) => sum + (record.attempts || 0), 0);
+  const correct = records.reduce((sum, record) => sum + (record.correct || 0), 0);
+  const weak = records.filter(isWeakTrainingRecord).length;
+  const due = records.filter((record) => isDueTrainingRecord(record)).length;
+
+  return {
+    positions: records.length,
+    attempts,
+    weak,
+    due,
+    accuracy: attempts ? Math.round((correct / attempts) * 100) : null,
+  };
+}
+
+function updateTrainingMemoryRecord(trainingMemory, attempt) {
+  const now = Date.now();
+  const previous = trainingMemory[attempt.key] || {};
+  const wasCorrect = attempt.outcome === "correct" || attempt.outcome === "correct-after-retry";
+  const wasFirstTry = attempt.outcome === "correct";
+  const wasWrong = attempt.outcome === "wrong";
+  const usedAnswer = attempt.outcome === "answer";
+  const previousStrength = previous.strength || 0;
+  const nextStrength = wasFirstTry
+    ? Math.min(6, previousStrength + 1)
+    : wasCorrect
+      ? Math.max(1, previousStrength)
+      : Math.max(0, previousStrength - 1);
+
+  return {
+    ...trainingMemory,
+    [attempt.key]: {
+      ...previous,
+      key: attempt.key,
+      openingId: attempt.openingId,
+      openingName: attempt.openingName,
+      variationName: attempt.variationName,
+      variationSaved: attempt.variationSaved,
+      fen: attempt.fen,
+      fenKey: trainingFenKey(attempt.fen),
+      expectedSan: attempt.expectedSan,
+      lastPlayedSan: attempt.playedSan || previous.lastPlayedSan || "",
+      side: attempt.side,
+      moveNumber: attempt.moveNumber,
+      history: attempt.history,
+      attempts: (previous.attempts || 0) + 1,
+      correct: (previous.correct || 0) + (wasCorrect ? 1 : 0),
+      correctFirstTry: (previous.correctFirstTry || 0) + (wasFirstTry ? 1 : 0),
+      correctAfterRetry: (previous.correctAfterRetry || 0) + (attempt.outcome === "correct-after-retry" ? 1 : 0),
+      mistakes: (previous.mistakes || 0) + (wasWrong ? 1 : 0),
+      answerReveals: (previous.answerReveals || 0) + (usedAnswer ? 1 : 0),
+      strength: nextStrength,
+      lastOutcome: attempt.outcome,
+      lastPracticedAt: now,
+      nextReviewAt: nextReviewAt(now, attempt.outcome, nextStrength),
+    },
+  };
+}
+
+function variationMemoryScore({ entry, openingId, quizSide, trainingMemory, mode }) {
+  let score = 0;
+
+  entry.moves.forEach((move, index) => {
+    if (sideForIndex(index) !== quizSide) return;
+    const fen = makeGameAtMove(entry.moves, index).fen();
+    const record = trainingMemory[trainingPositionKey(openingId, fen, move)];
+    if (!record) return;
+
+    if (mode === "weak" && isWeakTrainingRecord(record)) {
+      score += 8 + (record.mistakes || 0) * 2 + (record.answerReveals || 0) * 3 - (record.strength || 0);
+    }
+
+    if (mode === "due" && isDueTrainingRecord(record)) {
+      score += 6 + Math.max(0, 3 - (record.strength || 0));
+    }
+  });
+
+  return score;
+}
+
+function chooseVariationIndexForPracticeMode({ mode, openingId, variations, quizSide, trainingMemory }) {
+  if (!variations.length) return 0;
+  if (mode === "random") return randomIndex(variations.length);
+
+  const entries = buildVariationEntries(variations);
+  const scored = entries
+    .map((entry) => ({
+      index: entry.index,
+      score: variationMemoryScore({ entry, openingId, quizSide, trainingMemory, mode }),
+    }))
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  if (!scored.length) return randomIndex(variations.length);
+
+  const bestScore = scored[0].score;
+  const best = scored.filter((entry) => entry.score === bestScore);
+  return best[randomIndex(best.length)].index;
+}
+
 function createMoveTreeNode() {
   return {
     childMap: new Map(),
@@ -1130,8 +1278,17 @@ export default function App() {
       return {};
     }
   });
+  const [trainingMemory, setTrainingMemory] = useState(() => {
+    try {
+      const raw = localStorage.getItem(TRAINING_MEMORY_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  });
   const [selectedOpeningId, setSelectedOpeningId] = useState(OPENINGS[0].id);
   const [selectedVariationIndex, setSelectedVariationIndex] = useState(0);
+  const [practiceMode, setPracticeMode] = useState("random");
   const [customLineText, setCustomLineText] = useState(OPENINGS[0].variations[0].line);
   const [plannedMoves, setPlannedMoves] = useState(() => parseMoves(OPENINGS[0].variations[0].line));
   const [quizSide, setQuizSide] = useState("White");
@@ -1185,6 +1342,14 @@ export default function App() {
     }
   }, [savedVariations]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem(TRAINING_MEMORY_STORAGE_KEY, JSON.stringify(trainingMemory));
+    } catch {
+      // Ignore localStorage write errors.
+    }
+  }, [trainingMemory]);
+
   const selectedOpening = OPENINGS.find((opening) => opening.id === selectedOpeningId) || OPENINGS[0];
   const savedForOpening = savedVariations[selectedOpeningId] || [];
   const variationCatalog = useMemo(() => (
@@ -1236,6 +1401,11 @@ export default function App() {
     const sourceNode = reviewTreeNode || (shouldRevealCurrentBranches ? currentTreeNode : null);
     return summarizeTreeBranches(sourceNode, variationEntries);
   }, [currentTreeNode, feedback, isDone, reviewTreeNode, showAnswer, variationEntries]);
+  const trainingSummary = useMemo(() => (
+    selectedOpeningId === "custom"
+      ? { positions: 0, attempts: 0, weak: 0, due: 0, accuracy: null }
+      : summarizeTrainingMemory(trainingMemory, selectedOpeningId)
+  ), [selectedOpeningId, trainingMemory]);
 
   useEffect(() => {
     const worker = new Worker(STOCKFISH_PATH);
@@ -1359,7 +1529,13 @@ export default function App() {
     resetQuiz(false, selectedOpeningId, 0);
   }
 
-  function resetQuiz(randomizeVariation = true, openingId = selectedOpeningId, forcedVariationIndex = null) {
+  function resetQuiz(
+    randomizeVariation = true,
+    openingId = selectedOpeningId,
+    forcedVariationIndex = null,
+    quizSideOverride = quizSide,
+    practiceModeOverride = practiceMode,
+  ) {
     const opening = OPENINGS.find((o) => o.id === openingId) || OPENINGS[0];
     const variations = openingId === "custom"
       ? []
@@ -1369,7 +1545,13 @@ export default function App() {
       const nextVariationIndex = forcedVariationIndex !== null
         ? Math.max(0, Math.min(forcedVariationIndex, variations.length - 1))
         : randomizeVariation
-          ? randomIndex(variations.length)
+          ? chooseVariationIndexForPracticeMode({
+              mode: practiceModeOverride,
+              openingId,
+              variations,
+              quizSide: quizSideOverride,
+              trainingMemory,
+            })
           : Math.max(0, Math.min(selectedVariationIndex, variations.length - 1));
 
       setSelectedVariationIndex(nextVariationIndex);
@@ -1418,7 +1600,15 @@ export default function App() {
       nextOpening.variations || [],
       savedVariations[nextOpening.id] || [],
     ).playableVariations;
-    const nextVariationIndex = nextVariations.length ? randomIndex(nextVariations.length) : 0;
+    const nextVariationIndex = nextVariations.length
+      ? chooseVariationIndexForPracticeMode({
+          mode: practiceMode,
+          openingId: nextOpening.id,
+          variations: nextVariations,
+          quizSide,
+          trainingMemory,
+        })
+      : 0;
     setSelectedVariationIndex(nextVariationIndex);
     setPlannedMoves(parseMoves(nextVariations[nextVariationIndex]?.line || ""));
     setShowCustomEditor(false);
@@ -1989,6 +2179,34 @@ export default function App() {
     return true;
   }
 
+  function rememberTrainingAttempt({ outcome, playedSan = "", expectedSan = currentMove }) {
+    if (selectedOpeningId === "custom" || !expectedSan || !isQuizTurn) return;
+
+    const positionGame = makeGameAtMove(moves, currentIndex);
+    const fen = positionGame.fen();
+    const key = trainingPositionKey(selectedOpeningId, fen, expectedSan);
+
+    setTrainingMemory((prev) => updateTrainingMemoryRecord(prev, {
+      key,
+      openingId: selectedOpeningId,
+      openingName: selectedOpening.name,
+      variationName: selectedVariation?.name || "Current line",
+      variationSaved: !!selectedVariation?.saved,
+      fen,
+      expectedSan,
+      playedSan,
+      side: currentSide,
+      moveNumber: moveNumberForIndex(currentIndex),
+      history: buildHistoryItems(moves, currentIndex).map((item) => item.label).join(" "),
+      outcome,
+    }));
+  }
+
+  function revealAnswer() {
+    rememberTrainingAttempt({ outcome: "answer" });
+    setShowAnswer(true);
+  }
+
   function findExplanation(guessedSan) {
     if (!selectedVariation?.explanations) return null;
     const moveExplanations = selectedVariation.explanations[currentIndex];
@@ -2050,6 +2268,12 @@ export default function App() {
     const correct = treeEdge ? true : normalizeMove(guessedSan) === normalizeMove(currentMove);
 
     if (correct) {
+      rememberTrainingAttempt({
+        outcome: wrongAttemptsThisMove > 0 ? "correct-after-retry" : "correct",
+        playedSan: guessedSan,
+        expectedSan: treeEdge ? guessedSan : currentMove,
+      });
+
       if (treeEdge) {
         const continuation = chooseTreeContinuation(variationEntries, treeEdge, {
           randomize: true,
@@ -2069,6 +2293,7 @@ export default function App() {
     }
 
     const explanation = findExplanation(guessedSan);
+    rememberTrainingAttempt({ outcome: "wrong", playedSan: guessedSan, expectedSan: currentMove });
     recordMistake(guessedSan, explanation);
     setWrongAttemptsThisMove((count) => count + 1);
     setFeedback({
@@ -2295,6 +2520,8 @@ export default function App() {
         editingVariationLine={editingVariationLine}
         editingVariationName={editingVariationName}
         openings={OPENINGS}
+        practiceMode={practiceMode}
+        practiceModes={PRACTICE_MODES}
         quizSide={quizSide}
         savedForOpening={savedForOpening}
         selectedOpening={selectedOpening}
@@ -2321,9 +2548,11 @@ export default function App() {
         onResetMainLine={resetToMainLine}
         onResetQuiz={resetQuiz}
         onSelectVariation={selectVariation}
+        onSetPracticeMode={setPracticeMode}
         onSetQuizSide={setQuizSide}
         onStartEditingSavedVariation={startEditingSavedVariation}
         onToggleVariationManager={() => setShowVariationManager((value) => !value)}
+        trainingSummary={trainingSummary}
       />
 
       <section className="layout">
@@ -2373,6 +2602,7 @@ export default function App() {
             onClearReview={clearReview}
             onOpenLesson={openLesson}
             onResetQuiz={resetQuiz}
+            onRevealAnswer={revealAnswer}
             onSaveExtendedVariation={saveExtendedVariation}
             onSavePlayableAlternative={savePlayableAlternative}
             onSetExtensionMoveMode={setExtensionMoveMode}
@@ -2381,7 +2611,6 @@ export default function App() {
             onSetFreePlayViewIndex={setFreePlayViewIndex}
             onSetLesson={setLesson}
             onSetLessonStep={setLessonStep}
-            onSetShowAnswer={setShowAnswer}
             onSetViewIndex={setViewIndex}
             onStartExtensionFromPlayableAlternative={startExtensionFromPlayableAlternative}
             onStartFreePlay={startFreePlay}
