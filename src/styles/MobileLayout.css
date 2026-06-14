@@ -35,3 +35,14 @@
   max-height: none;
   overflow: visible;
 }
+
+@media (orientation: landscape) and (max-height: 600px) {
+  .mobile-layout .board-with-eval {
+    width: min(100%, calc(100svh - 24px));
+    margin: 0 auto;
+  }
+
+  .mobile-layout .eval-bar {
+    min-height: 0;
+  }
+}
