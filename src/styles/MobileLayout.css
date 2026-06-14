@@ -1,0 +1,37 @@
+.mobile-layout {
+  display: grid;
+  gap: 16px;
+  width: 100%;
+  min-width: 0;
+}
+
+.mobile-layout .card,
+.mobile-layout .board-card {
+  margin-bottom: 0;
+}
+
+.mobile-layout .board-card {
+  position: static;
+  padding: 10px;
+}
+
+.mobile-current-line {
+  min-width: 0;
+}
+
+.mobile-current-line > .card {
+  min-height: 0;
+  overflow: visible;
+}
+
+.mobile-current-line .moves-box {
+  min-height: 125px;
+  max-height: 180px;
+}
+
+.mobile-current-line .status-area,
+.mobile-current-line .feedback-area {
+  min-height: 0;
+  max-height: none;
+  overflow: visible;
+}

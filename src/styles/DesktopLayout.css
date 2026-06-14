@@ -1,0 +1,24 @@
+.desktop-layout {
+  display: grid;
+  grid-template-columns: minmax(420px, 520px) minmax(520px, 620px);
+  justify-content: center;
+  align-items: start;
+  gap: 24px;
+}
+
+.desktop-left-column {
+  display: grid;
+  gap: 24px;
+  width: 100%;
+  min-width: 0;
+}
+
+.desktop-layout .desktop-left-column > .card,
+.desktop-layout > .board-card {
+  margin-bottom: 0;
+}
+
+.desktop-layout > .board-card {
+  position: sticky;
+  top: 24px;
+}

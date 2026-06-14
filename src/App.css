@@ -99,21 +99,6 @@ textarea {
   padding: 32px;
 }
 
-.layout {
-  display: grid;
-  grid-template-columns: minmax(420px, 520px) minmax(520px, 620px);
-  justify-content: center;
-  align-items: start;
-  gap: 24px;
-}
-
-.left-column {
-  display: grid;
-  gap: 24px;
-  width: 100%;
-  min-width: 0;
-}
-
 .card,
 .board-card {
   background: var(--panel);
@@ -126,8 +111,6 @@ textarea {
 }
 
 .board-card {
-  position: sticky;
-  top: 24px;
   width: 100%;
   box-sizing: border-box;
 }
@@ -1146,14 +1129,6 @@ textarea {
     padding: 20px;
   }
 
-  .layout {
-    grid-template-columns: 1fr;
-  }
-
-  .board-card {
-    position: static;
-  }
-
   .board-shell {
     max-width: 100%;
   }
@@ -1221,77 +1196,10 @@ textarea {
     flex-wrap: wrap;
   }
 
-  .layout {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-
-  .left-column {
-    display: contents;
-  }
-
-  .left-column > .card:first-child {
-    order: 1;
-    min-height: 560px;
-    display: flex;
-    flex-direction: column;
-    overflow: visible;
-  }
-
-  .board-card {
-    order: 2;
-    position: static;
-    display: block;
-    padding: 10px;
-  }
-
-  .left-column > .card:nth-child(2) {
-    order: 3;
-  }
-
   .practice-panel,
   .card,
   .board-card {
     margin-bottom: 16px;
-  }
-
-  .left-column > .card:first-child .quiz-header {
-    flex: 0 0 auto;
-    min-height: 86px;
-  }
-
-  .left-column > .card:first-child .side-row {
-    flex: 0 0 auto;
-    min-height: 36px;
-  }
-
-  .left-column > .card:first-child .progress-bar {
-    flex: 0 0 auto;
-  }
-
-  .left-column > .card:first-child .moves-box {
-    flex: 0 0 125px;
-    min-height: 125px;
-    max-height: 125px;
-    overflow-y: auto;
-  }
-
-  .left-column > .card:first-child .status-area {
-    flex: 0 0 150px;
-    min-height: 150px;
-    max-height: 150px;
-    overflow-y: auto;
-  }
-
-  .left-column > .card:first-child .feedback-area {
-    flex: 1 1 auto;
-    min-height: 96px;
-    overflow: visible;
-  }
-
-  .left-column > .card:first-child .dynamic-analysis {
-    max-height: none;
-    overflow: visible;
   }
 
   .board-with-eval {

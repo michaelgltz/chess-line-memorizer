@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Chess } from "chess.js";
-import BoardWithEval from "./components/BoardWithEval.jsx";
-import CurrentLineCard from "./components/CurrentLineCard.jsx";
-import MistakeReview from "./components/MistakeReview.jsx";
-import PracticePanel from "./components/PracticePanel.jsx";
+import DesktopLayout from "./components/DesktopLayout.jsx";
+import MobileLayout from "./components/MobileLayout.jsx";
 import "./App.css";
 
 const STOCKFISH_PATH = "/stockfish/stockfish-18-lite-single.js";
@@ -843,6 +841,21 @@ function randomIndex(length) {
   return Math.floor(Math.random() * length);
 }
 
+function useMediaQuery(query) {
+  const [matches, setMatches] = useState(() => (
+    typeof window !== "undefined" && window.matchMedia(query).matches
+  ));
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(query);
+    const updateMatch = (event) => setMatches(event.matches);
+    mediaQuery.addEventListener("change", updateMatch);
+    return () => mediaQuery.removeEventListener("change", updateMatch);
+  }, [query]);
+
+  return matches;
+}
+
 function moveNumberForIndex(index) {
   return Math.floor(index / 2) + 1;
 }
@@ -1270,6 +1283,7 @@ async function analyzeWrongMoveDynamically({ originalFen, afterFen, playedSan, c
 }
 
 export default function App() {
+  const isMobileLayout = useMediaQuery("(max-width: 900px)");
   const [savedVariations, setSavedVariations] = useState(() => {
     try {
       const raw = localStorage.getItem("chess-line-memorizer-saved-variations");
@@ -2499,6 +2513,116 @@ export default function App() {
   const filteredExtensionTopMoves = extensionMoveMode === "top1"
     ? extensionTopMoves.slice(0, 1)
     : filterTopMovesByThreshold(extensionTopMoves, extensionThresholdCp).slice(0, 3);
+  const practicePanelProps = {
+    customLineText,
+    manualVariationLine,
+    manualVariationName,
+    editingVariationIndex,
+    editingVariationLine,
+    editingVariationName,
+    openings: OPENINGS,
+    practiceMode,
+    practiceModes: PRACTICE_MODES,
+    quizSide,
+    savedForOpening,
+    selectedOpening,
+    selectedOpeningId,
+    selectedVariationIndex,
+    showCustomEditor,
+    showVariationManager,
+    onAddManualVariation: addManualVariation,
+    onChooseOpening: chooseOpening,
+    onClearAllSavedVariations: clearAllSavedVariations,
+    onClearSavedVariationsForOpening: clearSavedVariationsForOpening,
+    onCustomLineTextChange: setCustomLineText,
+    variationCatalog,
+    onDeleteSavedVariation: deleteSavedVariation,
+    onDuplicateSavedVariation: duplicateSavedVariation,
+    onCancelEditingSavedVariation: cancelEditingSavedVariation,
+    onExportSavedVariations: exportSavedVariations,
+    onImportSavedVariations: importSavedVariations,
+    onSaveEditedVariation: saveEditedVariation,
+    onEditingVariationLineChange: setEditingVariationLine,
+    onEditingVariationNameChange: setEditingVariationName,
+    onManualVariationLineChange: setManualVariationLine,
+    onManualVariationNameChange: setManualVariationName,
+    onResetMainLine: resetToMainLine,
+    onResetQuiz: resetQuiz,
+    onSelectVariation: selectVariation,
+    onSetPracticeMode: setPracticeMode,
+    onSetQuizSide: setQuizSide,
+    onStartEditingSavedVariation: startEditingSavedVariation,
+    onToggleVariationManager: () => setShowVariationManager((value) => !value),
+    trainingSummary,
+  };
+  const currentLineProps = {
+    currentIndex,
+    currentMove,
+    currentSide,
+    branchSummary,
+    dynamicAnalysis,
+    dynamicAnalysisStatus,
+    extensionBaseMoves,
+    extensionMode,
+    extensionMoveMode,
+    extensionMoves,
+    extensionName,
+    extensionThresholdCp,
+    extensionTopMoveStatus,
+    feedback,
+    filteredExtensionTopMoves,
+    freePlayMode,
+    freePlayMoves,
+    freePlayViewIndex,
+    historyItems,
+    isDone,
+    isQuizTurn,
+    isReviewing,
+    lesson,
+    lessonStep,
+    moves,
+    opponentThinking,
+    progress,
+    quizSide,
+    savedForOpening,
+    selectedOpening,
+    selectedOpeningId,
+    selectedVariation,
+    showAnswer,
+    shownFen,
+    treeBranchCount: currentTreeNode?.children?.length || 0,
+    viewIndex,
+    wrongAttemptsThisMove,
+    formatTopMoveOption,
+    moveNumberForIndex,
+    onAdvance: advance,
+    onCancelExtensionMode: cancelExtensionMode,
+    onClearReview: clearReview,
+    onOpenLesson: openLesson,
+    onResetQuiz: resetQuiz,
+    onRevealAnswer: revealAnswer,
+    onSaveExtendedVariation: saveExtendedVariation,
+    onSavePlayableAlternative: savePlayableAlternative,
+    onSetExtensionMoveMode: setExtensionMoveMode,
+    onSetExtensionName: setExtensionName,
+    onSetExtensionThresholdCp: setExtensionThresholdCp,
+    onSetFreePlayViewIndex: setFreePlayViewIndex,
+    onSetLesson: setLesson,
+    onSetLessonStep: setLessonStep,
+    onSetViewIndex: setViewIndex,
+    onStartExtensionFromPlayableAlternative: startExtensionFromPlayableAlternative,
+    onStartFreePlay: startFreePlay,
+    onStopFreePlay: stopFreePlay,
+  };
+  const boardProps = {
+    chessboardOptions,
+    engineEval,
+    evalHeight,
+    evalStatus,
+    formatEval,
+  };
+  const mistakeReviewProps = { mistakes };
+  const ActiveLayout = isMobileLayout ? MobileLayout : DesktopLayout;
 
   return (
     <main className="app">
@@ -2511,123 +2635,12 @@ export default function App() {
           <p>Practice opening lines, explore variations, and review mistakes on the board.</p>
         </div>
       </section>
-
-      <PracticePanel
-        customLineText={customLineText}
-        manualVariationLine={manualVariationLine}
-        manualVariationName={manualVariationName}
-        editingVariationIndex={editingVariationIndex}
-        editingVariationLine={editingVariationLine}
-        editingVariationName={editingVariationName}
-        openings={OPENINGS}
-        practiceMode={practiceMode}
-        practiceModes={PRACTICE_MODES}
-        quizSide={quizSide}
-        savedForOpening={savedForOpening}
-        selectedOpening={selectedOpening}
-        selectedOpeningId={selectedOpeningId}
-        selectedVariationIndex={selectedVariationIndex}
-        showCustomEditor={showCustomEditor}
-        showVariationManager={showVariationManager}
-        onAddManualVariation={addManualVariation}
-        onChooseOpening={chooseOpening}
-        onClearAllSavedVariations={clearAllSavedVariations}
-        onClearSavedVariationsForOpening={clearSavedVariationsForOpening}
-        onCustomLineTextChange={setCustomLineText}
-        variationCatalog={variationCatalog}
-        onDeleteSavedVariation={deleteSavedVariation}
-        onDuplicateSavedVariation={duplicateSavedVariation}
-        onCancelEditingSavedVariation={cancelEditingSavedVariation}
-        onExportSavedVariations={exportSavedVariations}
-        onImportSavedVariations={importSavedVariations}
-        onSaveEditedVariation={saveEditedVariation}
-        onEditingVariationLineChange={setEditingVariationLine}
-        onEditingVariationNameChange={setEditingVariationName}
-        onManualVariationLineChange={setManualVariationLine}
-        onManualVariationNameChange={setManualVariationName}
-        onResetMainLine={resetToMainLine}
-        onResetQuiz={resetQuiz}
-        onSelectVariation={selectVariation}
-        onSetPracticeMode={setPracticeMode}
-        onSetQuizSide={setQuizSide}
-        onStartEditingSavedVariation={startEditingSavedVariation}
-        onToggleVariationManager={() => setShowVariationManager((value) => !value)}
-        trainingSummary={trainingSummary}
+      <ActiveLayout
+        boardProps={boardProps}
+        currentLineProps={currentLineProps}
+        mistakeReviewProps={mistakeReviewProps}
+        practicePanelProps={practicePanelProps}
       />
-
-      <section className="layout">
-        <div className="left-column">
-          <CurrentLineCard
-            currentIndex={currentIndex}
-            currentMove={currentMove}
-            currentSide={currentSide}
-            branchSummary={branchSummary}
-            dynamicAnalysis={dynamicAnalysis}
-            dynamicAnalysisStatus={dynamicAnalysisStatus}
-            extensionBaseMoves={extensionBaseMoves}
-            extensionMode={extensionMode}
-            extensionMoveMode={extensionMoveMode}
-            extensionMoves={extensionMoves}
-            extensionName={extensionName}
-            extensionThresholdCp={extensionThresholdCp}
-            extensionTopMoveStatus={extensionTopMoveStatus}
-            feedback={feedback}
-            filteredExtensionTopMoves={filteredExtensionTopMoves}
-            freePlayMode={freePlayMode}
-            freePlayMoves={freePlayMoves}
-            freePlayViewIndex={freePlayViewIndex}
-            historyItems={historyItems}
-            isDone={isDone}
-            isQuizTurn={isQuizTurn}
-            isReviewing={isReviewing}
-            lesson={lesson}
-            lessonStep={lessonStep}
-            moves={moves}
-            opponentThinking={opponentThinking}
-            progress={progress}
-            quizSide={quizSide}
-            savedForOpening={savedForOpening}
-            selectedOpening={selectedOpening}
-            selectedOpeningId={selectedOpeningId}
-            selectedVariation={selectedVariation}
-            showAnswer={showAnswer}
-            shownFen={shownFen}
-            treeBranchCount={currentTreeNode?.children?.length || 0}
-            viewIndex={viewIndex}
-            wrongAttemptsThisMove={wrongAttemptsThisMove}
-            formatTopMoveOption={formatTopMoveOption}
-            moveNumberForIndex={moveNumberForIndex}
-            onAdvance={advance}
-            onCancelExtensionMode={cancelExtensionMode}
-            onClearReview={clearReview}
-            onOpenLesson={openLesson}
-            onResetQuiz={resetQuiz}
-            onRevealAnswer={revealAnswer}
-            onSaveExtendedVariation={saveExtendedVariation}
-            onSavePlayableAlternative={savePlayableAlternative}
-            onSetExtensionMoveMode={setExtensionMoveMode}
-            onSetExtensionName={setExtensionName}
-            onSetExtensionThresholdCp={setExtensionThresholdCp}
-            onSetFreePlayViewIndex={setFreePlayViewIndex}
-            onSetLesson={setLesson}
-            onSetLessonStep={setLessonStep}
-            onSetViewIndex={setViewIndex}
-            onStartExtensionFromPlayableAlternative={startExtensionFromPlayableAlternative}
-            onStartFreePlay={startFreePlay}
-            onStopFreePlay={stopFreePlay}
-          />
-
-          <MistakeReview mistakes={mistakes} />
-        </div>
-
-        <BoardWithEval
-          chessboardOptions={chessboardOptions}
-          engineEval={engineEval}
-          evalHeight={evalHeight}
-          evalStatus={evalStatus}
-          formatEval={formatEval}
-        />
-      </section>
     </main>
   );
 }
