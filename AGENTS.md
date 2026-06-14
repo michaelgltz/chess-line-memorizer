@@ -25,7 +25,14 @@ which moves the user must recall.
 
 ## Architecture
 
-- `src/App.jsx` owns opening data and most trainer state/behavior.
+- `src/App.jsx` owns most trainer state and behavior.
+- `src/data/openings.js` owns the built-in opening catalog.
+- `src/lib/chess.js` contains shared chess notation, replay, and board helpers.
+- `src/lib/variations.js` contains variation catalog, dedupe, and runtime move-tree
+  logic.
+- `src/lib/trainingMemory.js` contains practice-mode selection and training-memory
+  logic.
+- `src/lib/stockfish.js` contains Stockfish parsing, analysis, and evaluation helpers.
 - `src/components/` contains the extracted UI sections.
 - `src/components/DesktopLayout.jsx` and `src/components/MobileLayout.jsx` define
   intentionally separate desktop and mobile composition.
@@ -54,7 +61,7 @@ which moves the user must recall.
 
 - Built-in and saved variations are currently stored as complete PGN-style lines,
   not as a persistent move tree.
-- Use `buildVariationCatalog` and `variationDedupeKey` in `src/App.jsx` when combining
+- Use `buildVariationCatalog` and `variationDedupeKey` in `src/lib/variations.js` when combining
   built-in and saved lines. Exact normalized duplicate lines must not receive extra
   practice weight.
 - Preserve the existing saved variation data format.
