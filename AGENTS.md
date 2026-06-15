@@ -95,6 +95,7 @@ which moves the user must recall.
 Run:
 
 ```bash
+npm test
 npm run lint
 npm run build
 ```

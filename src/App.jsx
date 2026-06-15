@@ -15,7 +15,6 @@ import {
   normalizeMove,
   parseMoves,
   pieceTypeColor,
-  randomIndex,
   sideForIndex,
   uciToSan,
 } from "./lib/chess.js";
@@ -47,8 +46,10 @@ import {
   buildMoveTree,
   buildVariationCatalog,
   buildVariationEntries,
+  chooseRandomTreeEdge,
   chooseTreeContinuation,
   findMoveTreeNode,
+  findTreeEdge,
   SAVED_VARIATIONS_STORAGE_KEY,
   summarizeTreeBranches,
   variationDedupeKey,
@@ -466,7 +467,7 @@ export default function App() {
   function playOpponentMove() {
     if (isDone || isQuizTurn) return;
     if (selectedOpeningId !== "custom" && currentTreeNode?.children?.length) {
-      const edge = currentTreeNode.children[randomIndex(currentTreeNode.children.length)];
+      const edge = chooseRandomTreeEdge(currentTreeNode);
       const continuation = chooseTreeContinuation(variationEntries, edge, {
         randomize: true,
         preferredVariationIndex: selectedVariationIndex,
@@ -1067,7 +1068,7 @@ export default function App() {
     const guessedSan = move.san;
     const treeEdge = selectedOpeningId === "custom"
       ? null
-      : currentTreeNode?.childMap.get(normalizeMove(guessedSan));
+      : findTreeEdge(currentTreeNode, guessedSan);
     const correct = treeEdge ? true : normalizeMove(guessedSan) === normalizeMove(currentMove);
 
     if (correct) {
