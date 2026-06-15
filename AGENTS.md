@@ -33,6 +33,8 @@ which moves the user must recall.
 - `src/lib/trainingMemory.js` contains practice-mode selection and training-memory
   logic.
 - `src/lib/stockfish.js` contains Stockfish parsing, analysis, and evaluation helpers.
+- `src/lib/stockfishController.js` owns Stockfish request IDs, channel cancellation,
+  worker lifecycle, and completed-analysis caching.
 - `src/components/` contains the extracted UI sections.
 - `src/components/DesktopLayout.jsx` and `src/components/MobileLayout.jsx` define
   intentionally separate desktop and mobile composition.
@@ -48,6 +50,8 @@ which moves the user must recall.
 ## Important Behavior
 
 - Stockfish evaluations shown in the UI are always from White's perspective.
+- All Stockfish requests use controller channels so superseded analysis cannot
+  update a newer position.
 - Computer repertoire replies wait a random `250-500ms`.
 - Dropping a piece back on its starting square or clicking away from its legal moves
   should silently cancel the move, not show an illegal-move warning.

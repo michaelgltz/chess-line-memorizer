@@ -142,130 +142,30 @@ function createRuleBasedExplanation({ playedSan, bestSan, evalBefore, evalAfter,
   return `This is not the engine's top choice. ${bestSan} keeps a better version of the position.`;
 }
 
-function extractPvFromInfoLine(line) {
-  const marker = " pv ";
-  const index = line.indexOf(marker);
-  return index === -1 ? "" : line.slice(index + marker.length).trim();
+function throwIfCancelled(signal) {
+  if (!signal?.aborted) return;
+  const error = new Error("Analysis cancelled");
+  error.name = "AbortError";
+  throw error;
 }
 
-export function analyzeTopMovesWithTemporaryStockfish(fen, depth = ENGINE_DEPTH, multiPv = 3) {
-  return new Promise((resolve) => {
-    const worker = new Worker(STOCKFISH_PATH);
-    const linesByPv = {};
-    let resolved = false;
+export async function analyzeWrongMoveDynamically(
+  { originalFen, afterFen, playedSan, correctSan },
+  { analyzeFen, signal } = {},
+) {
+  if (typeof analyzeFen !== "function") {
+    throw new Error("analyzeWrongMoveDynamically requires an analyzeFen function");
+  }
 
-    const finish = () => {
-      if (resolved) return;
-      resolved = true;
-      try {
-        worker.postMessage("quit");
-        worker.terminate();
-      } catch {
-        // Ignore cleanup errors.
-      }
-
-      const results = Object.values(linesByPv)
-        .filter((entry) => entry.bestMove)
-        .sort((entryA, entryB) => entryA.multiPv - entryB.multiPv);
-      resolve(results);
-    };
-
-    const timeout = setTimeout(finish, 7000);
-
-    worker.onmessage = (event) => {
-      const line = String(event.data || "").trim();
-      if (!line) return;
-
-      const info = parseStockfishInfo(line);
-      if (info) {
-        const tokens = line.split(" ");
-        const multiPvIndex = tokens.indexOf("multipv");
-        const multiPvNumber = multiPvIndex === -1 ? 1 : Number(tokens[multiPvIndex + 1] || 1);
-        const pv = extractPvFromInfoLine(line);
-        const bestMove = pv.split(" ").filter(Boolean)[0];
-
-        linesByPv[multiPvNumber] = {
-          ...info,
-          multiPv: multiPvNumber,
-          bestMove,
-          pv,
-        };
-        return;
-      }
-
-      if (parseBestMove(line)) {
-        clearTimeout(timeout);
-        finish();
-      }
-    };
-
-    worker.onerror = () => {
-      clearTimeout(timeout);
-      finish();
-    };
-
-    worker.postMessage("uci");
-    worker.postMessage(`setoption name MultiPV value ${multiPv}`);
-    worker.postMessage(`position fen ${fen}`);
-    worker.postMessage(`go depth ${depth}`);
-  });
-}
-
-export function analyzeFenWithTemporaryStockfish(fen, depth = ENGINE_DEPTH) {
-  return new Promise((resolve) => {
-    const worker = new Worker(STOCKFISH_PATH);
-    let latestInfo = null;
-    let resolved = false;
-
-    const finish = (result) => {
-      if (resolved) return;
-      resolved = true;
-      try {
-        worker.postMessage("quit");
-        worker.terminate();
-      } catch {
-        // Ignore cleanup errors.
-      }
-      resolve(result);
-    };
-
-    const timeout = setTimeout(() => finish(null), 6000);
-
-    worker.onmessage = (event) => {
-      const line = String(event.data || "").trim();
-      if (!line) return;
-
-      const info = parseStockfishInfo(line);
-      if (info) {
-        latestInfo = { ...info, pv: extractPvFromInfoLine(line) };
-        return;
-      }
-
-      const bestMove = parseBestMove(line);
-      if (bestMove) {
-        clearTimeout(timeout);
-        finish({ ...(latestInfo || {}), bestMove });
-      }
-    };
-
-    worker.onerror = () => {
-      clearTimeout(timeout);
-      finish(null);
-    };
-
-    worker.postMessage("uci");
-    worker.postMessage(`position fen ${fen}`);
-    worker.postMessage(`go depth ${depth}`);
-  });
-}
-
-export async function analyzeWrongMoveDynamically({ originalFen, afterFen, playedSan, correctSan }) {
   const originalGameForBest = new Chess(originalFen);
   const originalGameForEval = new Chess(originalFen);
   const afterGameForEval = new Chess(afterFen);
 
-  const beforeRaw = await analyzeFenWithTemporaryStockfish(originalFen, ENGINE_DEPTH);
-  const afterRaw = await analyzeFenWithTemporaryStockfish(afterFen, ENGINE_DEPTH);
+  throwIfCancelled(signal);
+  const beforeRaw = await analyzeFen(originalFen, { signal });
+  throwIfCancelled(signal);
+  const afterRaw = await analyzeFen(afterFen, { signal });
+  throwIfCancelled(signal);
 
   const evalBefore = scoreFromWhitePerspective(beforeRaw, originalGameForEval.turn());
   const evalAfter = scoreFromWhitePerspective(afterRaw, afterGameForEval.turn());

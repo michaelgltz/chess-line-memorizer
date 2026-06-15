@@ -19,21 +19,20 @@ import {
   uciToSan,
 } from "./lib/chess.js";
 import {
-  analyzeFenWithTemporaryStockfish,
-  analyzeTopMovesWithTemporaryStockfish,
   analyzeWrongMoveDynamically,
   ENGINE_DEPTH,
   filterTopMovesByThreshold,
   formatEval,
   formatThresholdPawns,
   formatTopMoveOption,
-  parseBestMove,
-  parseStockfishInfo,
   scoreFromWhitePerspective,
   scoreToComparableNumber,
-  STOCKFISH_PATH,
   whiteEvalHeight,
 } from "./lib/stockfish.js";
+import {
+  createStockfishController,
+  isStockfishRequestCancelled,
+} from "./lib/stockfishController.js";
 import {
   chooseVariationIndexForPracticeMode,
   completeSessionReview,
@@ -136,16 +135,14 @@ export default function App() {
   const [extensionTopMoves, setExtensionTopMoves] = useState([]);
   const [extensionTopMoveStatus, setExtensionTopMoveStatus] = useState("idle");
   const [engineEval, setEngineEval] = useState(null);
+  const [engineEvalFen, setEngineEvalFen] = useState(null);
   const [evalStatus, setEvalStatus] = useState("loading");
-  const [evalCache, setEvalCache] = useState({});
   const [sessionReviewQueue, setSessionReviewQueue] = useState([]);
   const [sessionReviewActive, setSessionReviewActive] = useState(false);
   const [sessionTrainingStats, setSessionTrainingStats] = useState(() => createSessionTrainingStats());
 
-  const stockfishRef = useRef(null);
-  const latestRawScoreRef = useRef(null);
-  const latestFenRef = useRef(null);
-  const latestSideToMoveRef = useRef("w");
+  const stockfishControllerRef = useRef(null);
+  const dynamicAnalysisAbortRef = useRef(null);
   const playOpponentMoveRef = useRef(null);
 
   useEffect(() => {
@@ -197,7 +194,6 @@ export default function App() {
   const shownFen = lessonGame?.fen() || freePlayReviewGame?.fen() || reviewGame?.fen() || previewFen || extensionFen || freePlayFen || actualFen;
   const shownGame = useMemo(() => new Chess(shownFen), [shownFen]);
   const sideToMove = shownGame.turn();
-  latestSideToMoveRef.current = sideToMove;
 
   const currentTreeNode = useMemo(() => (
     selectedOpeningId === "custom" ? null : findMoveTreeNode(moveTree, moves.slice(0, currentIndex))
@@ -210,9 +206,8 @@ export default function App() {
   const isSessionReviewComplete = sessionReviewActive && !activeSessionReview;
   const isReviewing = viewIndex !== null || freePlayViewIndex !== null || lesson !== null;
   const progress = moves.length ? Math.round((Math.min(currentIndex, moves.length) / moves.length) * 100) : 0;
-  const cachedEngineEval = evalCache[shownFen] || null;
-  const displayedEngineEval = cachedEngineEval || engineEval;
-  const displayedEvalStatus = cachedEngineEval ? "ready" : evalStatus;
+  const displayedEngineEval = engineEvalFen === shownFen ? engineEval : null;
+  const displayedEvalStatus = engineEvalFen === shownFen ? evalStatus : "loading";
   const evalHeight = whiteEvalHeight(displayedEngineEval);
   const historyItems = buildHistoryItems(moves, currentIndex);
   const reviewTreeNode = useMemo(() => (
@@ -231,44 +226,13 @@ export default function App() {
   const sessionSummary = useMemo(() => summarizeSessionTraining(sessionTrainingStats), [sessionTrainingStats]);
 
   useEffect(() => {
-    const worker = new Worker(STOCKFISH_PATH);
-    stockfishRef.current = worker;
-
-    worker.onmessage = (event) => {
-      const line = String(event.data || "").trim();
-      if (!line) return;
-
-      const info = parseStockfishInfo(line);
-      if (info) {
-        latestRawScoreRef.current = info;
-        const whiteScore = scoreFromWhitePerspective(info, latestSideToMoveRef.current);
-        setEngineEval(whiteScore);
-        setEvalStatus("analyzing");
-        return;
-      }
-
-      const bestMove = parseBestMove(line);
-      if (bestMove && latestRawScoreRef.current) {
-        const completeRawScore = { ...latestRawScoreRef.current, bestMove };
-        const whiteScore = scoreFromWhitePerspective(completeRawScore, latestSideToMoveRef.current);
-        setEngineEval(whiteScore);
-        setEvalCache((prev) => ({ ...prev, [latestFenRef.current]: whiteScore }));
-        setEvalStatus("ready");
-      }
-    };
-
-    worker.onerror = () => {
-      setEngineEval(null);
-      setEvalStatus("unavailable");
-    };
-
-    worker.postMessage("uci");
-    worker.postMessage("isready");
+    const controller = createStockfishController();
+    stockfishControllerRef.current = controller;
 
     return () => {
-      worker.postMessage("quit");
-      worker.terminate();
-      stockfishRef.current = null;
+      dynamicAnalysisAbortRef.current?.abort();
+      controller.dispose();
+      stockfishControllerRef.current = null;
     };
   }, []);
 
@@ -302,14 +266,18 @@ export default function App() {
       setExtensionTopMoveStatus("loading");
       setExtensionTopMoves([]);
 
-      analyzeTopMovesWithTemporaryStockfish(extensionFen, ENGINE_DEPTH, 3)
+      stockfishControllerRef.current?.analyzeTopMoves(extensionFen, {
+        channel: "extension-top",
+        depth: ENGINE_DEPTH,
+        multiPv: 3,
+      })
         .then((moves) => {
           if (cancelled) return;
           setExtensionTopMoves(moves || []);
           setExtensionTopMoveStatus(moves?.length ? "ready" : "unavailable");
         })
-        .catch(() => {
-          if (cancelled) return;
+        .catch((error) => {
+          if (cancelled || isStockfishRequestCancelled(error)) return;
           setExtensionTopMoves([]);
           setExtensionTopMoveStatus("unavailable");
         });
@@ -318,6 +286,7 @@ export default function App() {
     return () => {
       cancelled = true;
       clearTimeout(startTimer);
+      stockfishControllerRef.current?.cancel("extension-top");
     };
   }, [extensionMode, extensionFen]);
 
@@ -332,14 +301,18 @@ export default function App() {
       setFreePlayTopMoveStatus("loading");
       setFreePlayTopMoves([]);
 
-      analyzeTopMovesWithTemporaryStockfish(freePlayFen, ENGINE_DEPTH, 3)
+      stockfishControllerRef.current?.analyzeTopMoves(freePlayFen, {
+        channel: "free-play-top",
+        depth: ENGINE_DEPTH,
+        multiPv: 3,
+      })
         .then((topMoves) => {
           if (cancelled) return;
           setFreePlayTopMoves(topMoves || []);
           setFreePlayTopMoveStatus(topMoves?.length ? "ready" : "unavailable");
         })
-        .catch(() => {
-          if (cancelled) return;
+        .catch((error) => {
+          if (cancelled || isStockfishRequestCancelled(error)) return;
           setFreePlayTopMoves([]);
           setFreePlayTopMoveStatus("unavailable");
         });
@@ -348,31 +321,66 @@ export default function App() {
     return () => {
       cancelled = true;
       clearTimeout(startTimer);
+      stockfishControllerRef.current?.cancel("free-play-top");
     };
   }, [freePlayFen, freePlayMode]);
 
   useEffect(() => {
-    if (!shownFen || !stockfishRef.current) return;
+    const controller = stockfishControllerRef.current;
+    if (!shownFen || !controller) return;
 
-    if (evalCache[shownFen]) {
-      return;
-    }
-
+    let cancelled = false;
     const startTimer = setTimeout(() => {
-      latestFenRef.current = shownFen;
-      latestSideToMoveRef.current = sideToMove;
-      latestRawScoreRef.current = null;
+      if (cancelled) return;
       setEngineEval(null);
+      setEngineEvalFen(shownFen);
       setEvalStatus("analyzing");
 
-      const worker = stockfishRef.current;
-      worker.postMessage("stop");
-      worker.postMessage(`position fen ${shownFen}`);
-      worker.postMessage(`go depth ${ENGINE_DEPTH}`);
+      controller.analyzeFen(shownFen, {
+        channel: "board-eval",
+        depth: ENGINE_DEPTH,
+        onUpdate: ({ result }) => {
+          if (cancelled) return;
+          setEngineEval(scoreFromWhitePerspective(result, sideToMove));
+          setEngineEvalFen(shownFen);
+          setEvalStatus("analyzing");
+        },
+      })
+        .then((rawScore) => {
+          if (cancelled) return;
+          setEngineEval(scoreFromWhitePerspective(rawScore, sideToMove));
+          setEngineEvalFen(shownFen);
+          setEvalStatus(rawScore ? "ready" : "unavailable");
+        })
+        .catch((error) => {
+          if (cancelled || isStockfishRequestCancelled(error)) return;
+          setEngineEval(null);
+          setEngineEvalFen(shownFen);
+          setEvalStatus("unavailable");
+        });
     }, 0);
 
-    return () => clearTimeout(startTimer);
-  }, [shownFen, sideToMove, evalCache]);
+    return () => {
+      cancelled = true;
+      clearTimeout(startTimer);
+      controller.cancel("board-eval");
+    };
+  }, [shownFen, sideToMove]);
+
+  useEffect(() => () => {
+    stockfishControllerRef.current?.cancel("extension-check");
+  }, [extensionFen, extensionMode]);
+
+  useEffect(() => () => {
+    dynamicAnalysisAbortRef.current?.abort();
+    stockfishControllerRef.current?.cancel("wrong-move");
+  }, [actualFen, selectedOpeningId]);
+
+  function cancelDynamicAnalysisRequest() {
+    dynamicAnalysisAbortRef.current?.abort();
+    dynamicAnalysisAbortRef.current = null;
+    stockfishControllerRef.current?.cancel("wrong-move");
+  }
 
   function clearReview() {
     setViewIndex(null);
@@ -392,6 +400,7 @@ export default function App() {
     quizSideOverride = quizSide,
     practiceModeOverride = practiceMode,
   ) {
+    cancelDynamicAnalysisRequest();
     const opening = OPENINGS.find((o) => o.id === openingId) || OPENINGS[0];
     const variations = openingId === "custom"
       ? []
@@ -444,6 +453,7 @@ export default function App() {
   }
 
   function chooseOpening(openingId) {
+    cancelDynamicAnalysisRequest();
     if (openingId === "custom") {
       setSelectedOpeningId("custom");
       setShowCustomEditor(true);
@@ -501,6 +511,7 @@ export default function App() {
   }
 
   function advance() {
+    cancelDynamicAnalysisRequest();
     setCurrentIndex((i) => i + 1);
     setFeedback(null);
     setDynamicAnalysis(null);
@@ -525,6 +536,7 @@ export default function App() {
 
   function prepareSessionReview(review) {
     if (!review) return;
+    cancelDynamicAnalysisRequest();
     setSessionReviewActive(true);
     setSelectedVariationIndex(review.variationIndex);
     setPlannedMoves(review.moves);
@@ -559,6 +571,7 @@ export default function App() {
 
   function completeCurrentSessionReview() {
     if (!activeSessionReview) return;
+    cancelDynamicAnalysisRequest();
     const remaining = completeSessionReview(sessionReviewQueue, activeSessionReview.key);
     setSessionReviewQueue(remaining);
     setShowAnswer(false);
@@ -906,6 +919,7 @@ export default function App() {
   function startExtensionFromPlayableAlternative() {
     if (!dynamicAnalysis?.isPlayableAlternative || selectedOpeningId === "custom") return;
 
+    cancelDynamicAnalysisRequest();
     const baseMoves = [...moves.slice(0, currentIndex), dynamicAnalysis.playedSan];
     const baseLine = formatLineWithMoveNumbers(baseMoves);
     const baseGame = makeGameAtMove(baseMoves, baseMoves.length);
@@ -929,6 +943,7 @@ export default function App() {
   function saveExtendedVariation() {
     if (!extensionMode || selectedOpeningId === "custom") return;
 
+    stockfishControllerRef.current?.cancel("extension-check");
     const allMoves = [...extensionBaseMoves, ...extensionMoves];
     const line = formatLineWithMoveNumbers(allMoves);
     const saveResult = saveVariationToStorage({ name: extensionName || "Extended saved variation", line });
@@ -949,6 +964,8 @@ export default function App() {
   }
 
   function cancelExtensionMode() {
+    stockfishControllerRef.current?.cancel("extension-check");
+    stockfishControllerRef.current?.cancel("extension-top");
     setExtensionMode(false);
     setExtensionFen(null);
     setExtensionBaseMoves([]);
@@ -986,6 +1003,7 @@ export default function App() {
       return false;
     }
 
+    stockfishControllerRef.current?.cancel("extension-check");
     const playedUci = moveToUci(move);
     const allowedUciMoves = allowedMoves.map((entry) => entry.bestMove);
     const allowedSanMoves = allowedMoves.map((entry) => uciToSan(currentFen, entry.bestMove) || entry.bestMove);
@@ -1007,10 +1025,19 @@ export default function App() {
 
       const playedSan = move.san;
       const afterFen = extensionGame.fen();
+      const controller = stockfishControllerRef.current;
+      if (!controller) {
+        setFeedback({ type: "wrong", text: "Stockfish is unavailable right now. Try one of the listed moves." });
+        return false;
+      }
+
       setFeedback({ type: "correct", text: `Checking ${playedSan} against the ${formatThresholdPawns(extensionThresholdCp)} pawn range...` });
       setSelectedSquare(null);
 
-      analyzeFenWithTemporaryStockfish(afterFen, ENGINE_DEPTH)
+      controller.analyzeFen(afterFen, {
+        channel: "extension-check",
+        depth: ENGINE_DEPTH,
+      })
         .then((rawScore) => {
           const replyScore = scoreToComparableNumber(rawScore);
           const playedScore = replyScore === null ? null : -replyScore;
@@ -1036,7 +1063,8 @@ export default function App() {
             text: `${playedSan} is legal, but it is about ${(gap / 100).toFixed(2)} pawns worse than Stockfish's best move. Current range: ${formatThresholdPawns(extensionThresholdCp)} pawns.`,
           });
         })
-        .catch(() => {
+        .catch((error) => {
+          if (isStockfishRequestCancelled(error)) return;
           setFeedback({ type: "wrong", text: `Could not analyze ${playedSan}. Try one of the listed moves: ${allowedSanMoves.join(", ")}.` });
         });
 
@@ -1067,6 +1095,7 @@ export default function App() {
   }
 
   function stopFreePlay() {
+    stockfishControllerRef.current?.cancel("free-play-top");
     setFreePlayMode(false);
     setFreePlayFen(null);
     setFreePlayMoves([]);
@@ -1099,8 +1128,11 @@ export default function App() {
       return false;
     }
 
+    stockfishControllerRef.current?.cancel("free-play-top");
     setFreePlayFen(freeGame.fen());
     setFreePlayMoves((prev) => [...prev, move.san]);
+    setFreePlayTopMoves([]);
+    setFreePlayTopMoveStatus("loading");
     setFreePlayViewIndex(null);
     setFeedback({ type: "correct", text: `Free play: ${move.san}` });
     setSelectedSquare(null);
@@ -1213,6 +1245,7 @@ export default function App() {
     const correct = treeEdge ? true : normalizeMove(guessedSan) === normalizeMove(currentMove);
 
     if (correct) {
+      cancelDynamicAnalysisRequest();
       rememberTrainingAttempt({
         outcome: wrongAttemptsThisMove > 0 ? "correct-after-retry" : "correct",
         playedSan: guessedSan,
@@ -1233,6 +1266,8 @@ export default function App() {
 
       setPreviewFen(testGame.fen());
       setFeedback({ type: "correct", text: treeEdge && normalizeMove(guessedSan) !== normalizeMove(currentMove) ? `Correct branch: ${guessedSan}` : `Correct: ${guessedSan}` });
+      setDynamicAnalysis(null);
+      setDynamicAnalysisStatus("idle");
       setTimeout(sessionReviewActive ? completeCurrentSessionReview : advance, CORRECT_FEEDBACK_DELAY_MS);
       return true;
     }
@@ -1247,22 +1282,42 @@ export default function App() {
       explanation,
     });
 
+    cancelDynamicAnalysisRequest();
+    const controller = stockfishControllerRef.current;
     setDynamicAnalysis(null);
     setDynamicAnalysisStatus("loading");
     const originalFen = makeGameAtMove(moves, currentIndex).fen();
     const afterFen = testGame.fen();
 
+    if (!controller) {
+      setDynamicAnalysisStatus("unavailable");
+      return false;
+    }
+
+    const abortController = new AbortController();
+    dynamicAnalysisAbortRef.current = abortController;
     analyzeWrongMoveDynamically({
       originalFen,
       afterFen,
       playedSan: guessedSan,
       correctSan: currentMove,
+    }, {
+      signal: abortController.signal,
+      analyzeFen: (fen, options = {}) => controller.analyzeFen(fen, {
+        channel: "wrong-move",
+        depth: ENGINE_DEPTH,
+        signal: options.signal,
+      }),
     })
       .then((analysis) => {
+        if (abortController.signal.aborted) return;
+        dynamicAnalysisAbortRef.current = null;
         setDynamicAnalysis(analysis);
         setDynamicAnalysisStatus(analysis ? "ready" : "unavailable");
       })
-      .catch(() => {
+      .catch((error) => {
+        if (abortController.signal.aborted || isStockfishRequestCancelled(error)) return;
+        dynamicAnalysisAbortRef.current = null;
         setDynamicAnalysis(null);
         setDynamicAnalysisStatus("unavailable");
       });
