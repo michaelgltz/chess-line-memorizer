@@ -30,6 +30,7 @@ export default function PracticePanel({
   selectedVariationIndex,
   showCustomEditor,
   showVariationManager,
+  reviewTimingLabel,
   trainingSummary,
   variationCatalog,
   onAddManualVariation,
@@ -117,9 +118,13 @@ export default function PracticePanel({
               <span><strong>{trainingSummary.positions}</strong> positions</span>
               <span><strong>{trainingSummary.weak}</strong> weak</span>
               <span><strong>{trainingSummary.due}</strong> due</span>
-              <span><strong>{trainingSummary.accuracy ?? "—"}{trainingSummary.accuracy !== null ? "%" : ""}</strong> accuracy</span>
+              <span><strong>{trainingSummary.masteryPercent}%</strong> mastered</span>
             </div>
           </div>
+          <p className="training-review-timing">
+            {reviewTimingLabel}
+            {trainingSummary.recentAccuracy !== null ? ` · Recent accuracy ${trainingSummary.recentAccuracy}%` : ""}
+          </p>
           <div className="practice-mode-options" role="group" aria-label="Practice mode">
             {practiceModes.map((mode) => (
               <button

@@ -36,10 +36,16 @@ import {
 } from "./lib/stockfish.js";
 import {
   chooseVariationIndexForPracticeMode,
+  completeSessionReview,
+  createSessionTrainingStats,
+  enqueueSessionReview,
   PRACTICE_MODES,
+  reviewTimingLabel,
+  summarizeSessionTraining,
   summarizeTrainingMemory,
   TRAINING_MEMORY_STORAGE_KEY,
   trainingPositionKey,
+  updateSessionTrainingStats,
   updateTrainingMemoryRecord,
 } from "./lib/trainingMemory.js";
 import {
@@ -130,11 +136,15 @@ export default function App() {
   const [engineEval, setEngineEval] = useState(null);
   const [evalStatus, setEvalStatus] = useState("loading");
   const [evalCache, setEvalCache] = useState({});
+  const [sessionReviewQueue, setSessionReviewQueue] = useState([]);
+  const [sessionReviewActive, setSessionReviewActive] = useState(false);
+  const [sessionTrainingStats, setSessionTrainingStats] = useState(() => createSessionTrainingStats());
 
   const stockfishRef = useRef(null);
   const latestRawScoreRef = useRef(null);
   const latestFenRef = useRef(null);
   const latestSideToMoveRef = useRef("w");
+  const playOpponentMoveRef = useRef(null);
 
   useEffect(() => {
     try {
@@ -194,9 +204,14 @@ export default function App() {
   const currentSide = sideForIndex(currentIndex);
   const isQuizTurn = currentSide === quizSide;
   const isDone = !currentMove && currentIndex >= moves.length;
+  const activeSessionReview = sessionReviewActive ? sessionReviewQueue[0] || null : null;
+  const isSessionReviewComplete = sessionReviewActive && !activeSessionReview;
   const isReviewing = viewIndex !== null || freePlayViewIndex !== null || lesson !== null;
   const progress = moves.length ? Math.round((Math.min(currentIndex, moves.length) / moves.length) * 100) : 0;
-  const evalHeight = whiteEvalHeight(engineEval);
+  const cachedEngineEval = evalCache[shownFen] || null;
+  const displayedEngineEval = cachedEngineEval || engineEval;
+  const displayedEvalStatus = cachedEngineEval ? "ready" : evalStatus;
+  const evalHeight = whiteEvalHeight(displayedEngineEval);
   const historyItems = buildHistoryItems(moves, currentIndex);
   const reviewTreeNode = useMemo(() => (
     selectedOpeningId === "custom" || viewIndex === null ? null : findMoveTreeNode(moveTree, moves.slice(0, viewIndex))
@@ -208,9 +223,10 @@ export default function App() {
   }, [currentTreeNode, feedback, isDone, reviewTreeNode, showAnswer, variationEntries]);
   const trainingSummary = useMemo(() => (
     selectedOpeningId === "custom"
-      ? { positions: 0, attempts: 0, weak: 0, due: 0, accuracy: null }
-      : summarizeTrainingMemory(trainingMemory, selectedOpeningId)
-  ), [selectedOpeningId, trainingMemory]);
+      ? { positions: 0, attempts: 0, weak: 0, due: 0, mastered: 0, masteryPercent: 0, accuracy: null, recentAccuracy: null, nextReviewAt: null }
+      : summarizeTrainingMemory(trainingMemory, selectedOpeningId, { quizSide })
+  ), [quizSide, selectedOpeningId, trainingMemory]);
+  const sessionSummary = useMemo(() => summarizeSessionTraining(sessionTrainingStats), [sessionTrainingStats]);
 
   useEffect(() => {
     const worker = new Worker(STOCKFISH_PATH);
@@ -259,14 +275,15 @@ export default function App() {
       return;
     }
 
-    setOpponentThinking(true);
     const delay = OPPONENT_DELAY_MIN_MS + Math.floor(Math.random() * (OPPONENT_DELAY_MAX_MS - OPPONENT_DELAY_MIN_MS + 1));
+    const thinkingTimer = setTimeout(() => setOpponentThinking(true), 0);
     const timer = setTimeout(() => {
       setOpponentThinking(false);
-      playOpponentMove();
+      playOpponentMoveRef.current?.();
     }, delay);
 
     return () => {
+      clearTimeout(thinkingTimer);
       clearTimeout(timer);
       setOpponentThinking(false);
     };
@@ -274,29 +291,31 @@ export default function App() {
 
   useEffect(() => {
     if (!extensionMode || !extensionFen) {
-      setExtensionTopMoves([]);
-      setExtensionTopMoveStatus("idle");
       return;
     }
 
     let cancelled = false;
-    setExtensionTopMoveStatus("loading");
-    setExtensionTopMoves([]);
+    const startTimer = setTimeout(() => {
+      if (cancelled) return;
+      setExtensionTopMoveStatus("loading");
+      setExtensionTopMoves([]);
 
-    analyzeTopMovesWithTemporaryStockfish(extensionFen, ENGINE_DEPTH, 3)
-      .then((moves) => {
-        if (cancelled) return;
-        setExtensionTopMoves(moves || []);
-        setExtensionTopMoveStatus(moves?.length ? "ready" : "unavailable");
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setExtensionTopMoves([]);
-        setExtensionTopMoveStatus("unavailable");
-      });
+      analyzeTopMovesWithTemporaryStockfish(extensionFen, ENGINE_DEPTH, 3)
+        .then((moves) => {
+          if (cancelled) return;
+          setExtensionTopMoves(moves || []);
+          setExtensionTopMoveStatus(moves?.length ? "ready" : "unavailable");
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setExtensionTopMoves([]);
+          setExtensionTopMoveStatus("unavailable");
+        });
+    }, 0);
 
     return () => {
       cancelled = true;
+      clearTimeout(startTimer);
     };
   }, [extensionMode, extensionFen]);
 
@@ -304,21 +323,23 @@ export default function App() {
     if (!shownFen || !stockfishRef.current) return;
 
     if (evalCache[shownFen]) {
-      setEngineEval(evalCache[shownFen]);
-      setEvalStatus("ready");
       return;
     }
 
-    latestFenRef.current = shownFen;
-    latestSideToMoveRef.current = sideToMove;
-    latestRawScoreRef.current = null;
-    setEngineEval(null);
-    setEvalStatus("analyzing");
+    const startTimer = setTimeout(() => {
+      latestFenRef.current = shownFen;
+      latestSideToMoveRef.current = sideToMove;
+      latestRawScoreRef.current = null;
+      setEngineEval(null);
+      setEvalStatus("analyzing");
 
-    const worker = stockfishRef.current;
-    worker.postMessage("stop");
-    worker.postMessage(`position fen ${shownFen}`);
-    worker.postMessage(`go depth ${ENGINE_DEPTH}`);
+      const worker = stockfishRef.current;
+      worker.postMessage("stop");
+      worker.postMessage(`position fen ${shownFen}`);
+      worker.postMessage(`go depth ${ENGINE_DEPTH}`);
+    }, 0);
+
+    return () => clearTimeout(startTimer);
   }, [shownFen, sideToMove, evalCache]);
 
   function clearReview() {
@@ -385,6 +406,9 @@ export default function App() {
     setExtensionName("");
     setExtensionTopMoves([]);
     setExtensionTopMoveStatus("idle");
+    setSessionReviewQueue([]);
+    setSessionReviewActive(false);
+    setSessionTrainingStats(createSessionTrainingStats());
   }
 
   function chooseOpening(openingId) {
@@ -439,6 +463,9 @@ export default function App() {
     setExtensionName("");
     setExtensionTopMoves([]);
     setExtensionTopMoveStatus("idle");
+    setSessionReviewQueue([]);
+    setSessionReviewActive(false);
+    setSessionTrainingStats(createSessionTrainingStats());
   }
 
   function advance() {
@@ -464,6 +491,66 @@ export default function App() {
     setExtensionTopMoveStatus("idle");
   }
 
+  function prepareSessionReview(review) {
+    if (!review) return;
+    setSessionReviewActive(true);
+    setSelectedVariationIndex(review.variationIndex);
+    setPlannedMoves(review.moves);
+    setCurrentIndex(review.moveIndex);
+    setViewIndex(null);
+    setFreePlayViewIndex(null);
+    setFeedback(null);
+    setDynamicAnalysis(null);
+    setDynamicAnalysisStatus("idle");
+    setShowAnswer(false);
+    setWrongAttemptsThisMove(0);
+    setSelectedSquare(null);
+    setPreviewFen(null);
+    setOpponentThinking(false);
+    setLesson(null);
+    setLessonStep(0);
+    setFreePlayMode(false);
+    setFreePlayFen(null);
+    setFreePlayMoves([]);
+    setExtensionMode(false);
+    setExtensionFen(null);
+    setExtensionBaseMoves([]);
+    setExtensionMoves([]);
+    setExtensionName("");
+    setExtensionTopMoves([]);
+    setExtensionTopMoveStatus("idle");
+  }
+
+  function startSessionReview() {
+    prepareSessionReview(sessionReviewQueue[0]);
+  }
+
+  function completeCurrentSessionReview() {
+    if (!activeSessionReview) return;
+    const remaining = completeSessionReview(sessionReviewQueue, activeSessionReview.key);
+    setSessionReviewQueue(remaining);
+    setShowAnswer(false);
+    setWrongAttemptsThisMove(0);
+    setSelectedSquare(null);
+    setDynamicAnalysis(null);
+    setDynamicAnalysisStatus("idle");
+
+    if (remaining.length) {
+      prepareSessionReview(remaining[0]);
+      return;
+    }
+
+    setFeedback(null);
+  }
+
+  function advanceAfterAnswer() {
+    if (sessionReviewActive) {
+      completeCurrentSessionReview();
+      return;
+    }
+    advance();
+  }
+
   function playOpponentMove() {
     if (isDone || isQuizTurn) return;
     if (selectedOpeningId !== "custom" && currentTreeNode?.children?.length) {
@@ -480,6 +567,8 @@ export default function App() {
     }
     advance();
   }
+
+  playOpponentMoveRef.current = playOpponentMove;
 
   function deleteSavedVariation(openingId, variationIndex) {
     setSavedVariations((prev) => {
@@ -988,8 +1077,7 @@ export default function App() {
     const positionGame = makeGameAtMove(moves, currentIndex);
     const fen = positionGame.fen();
     const key = trainingPositionKey(selectedOpeningId, fen, expectedSan);
-
-    setTrainingMemory((prev) => updateTrainingMemoryRecord(prev, {
+    const attempt = {
       key,
       openingId: selectedOpeningId,
       openingName: selectedOpening.name,
@@ -1002,7 +1090,24 @@ export default function App() {
       moveNumber: moveNumberForIndex(currentIndex),
       history: buildHistoryItems(moves, currentIndex).map((item) => item.label).join(" "),
       outcome,
+    };
+
+    setTrainingMemory((prev) => updateTrainingMemoryRecord(prev, attempt));
+    setSessionTrainingStats((prev) => updateSessionTrainingStats(prev, {
+      key,
+      outcome,
+      reviewed: sessionReviewActive,
     }));
+
+    if (!sessionReviewActive && (outcome === "wrong" || outcome === "answer")) {
+      setSessionReviewQueue((prev) => enqueueSessionReview(prev, {
+        key,
+        variationIndex: selectedVariationIndex,
+        moves: [...moves],
+        moveIndex: currentIndex,
+        expectedSan,
+      }));
+    }
   }
 
   function revealAnswer() {
@@ -1048,7 +1153,7 @@ export default function App() {
   function tryPlayerMove(sourceSquare, targetSquare) {
     if (extensionMode) return tryExtensionMove(sourceSquare, targetSquare);
     if (freePlayMode) return tryFreePlayMove(sourceSquare, targetSquare);
-    if (!currentMove || !isQuizTurn || isDone || showAnswer || previewFen || isReviewing) return false;
+    if (!currentMove || !isQuizTurn || isDone || isSessionReviewComplete || showAnswer || previewFen || isReviewing) return false;
 
     const testGame = makeGameAtMove(moves, currentIndex);
     let move;
@@ -1066,7 +1171,7 @@ export default function App() {
     }
 
     const guessedSan = move.san;
-    const treeEdge = selectedOpeningId === "custom"
+    const treeEdge = selectedOpeningId === "custom" || sessionReviewActive
       ? null
       : findTreeEdge(currentTreeNode, guessedSan);
     const correct = treeEdge ? true : normalizeMove(guessedSan) === normalizeMove(currentMove);
@@ -1092,7 +1197,7 @@ export default function App() {
 
       setPreviewFen(testGame.fen());
       setFeedback({ type: "correct", text: treeEdge && normalizeMove(guessedSan) !== normalizeMove(currentMove) ? `Correct branch: ${guessedSan}` : `Correct: ${guessedSan}` });
-      setTimeout(advance, CORRECT_FEEDBACK_DELAY_MS);
+      setTimeout(sessionReviewActive ? completeCurrentSessionReview : advance, CORRECT_FEEDBACK_DELAY_MS);
       return true;
     }
 
@@ -1168,7 +1273,7 @@ export default function App() {
       return;
     }
 
-    if (!isQuizTurn || isDone) return;
+    if (!isQuizTurn || isDone || isSessionReviewComplete) return;
 
     const piece = game.get(square);
 
@@ -1204,7 +1309,7 @@ export default function App() {
   function handlePieceDrop(firstArg, secondArg) {
     const sourceSquare = typeof firstArg === "object" ? firstArg.sourceSquare : firstArg;
     const targetSquare = typeof firstArg === "object" ? firstArg.targetSquare : secondArg;
-    if (!sourceSquare || !targetSquare || isReviewing) return false;
+    if (!sourceSquare || !targetSquare || isReviewing || isSessionReviewComplete) return false;
     setSelectedSquare(null);
 
     if (sourceSquare === targetSquare) return true;
@@ -1246,7 +1351,7 @@ export default function App() {
       return false;
     }
 
-    if (!isQuizTurn || isDone || showAnswer || previewFen || isReviewing) return false;
+    if (!isQuizTurn || isDone || isSessionReviewComplete || showAnswer || previewFen || isReviewing) return false;
     const piece = typeof firstArg === "object" ? firstArg.piece : firstArg;
     const sourceSquare = typeof firstArg === "object" ? firstArg.sourceSquare : secondArg;
 
@@ -1343,6 +1448,7 @@ export default function App() {
     onSetQuizSide: setQuizSide,
     onStartEditingSavedVariation: startEditingSavedVariation,
     onToggleVariationManager: () => setShowVariationManager((value) => !value),
+    reviewTimingLabel: trainingSummary.due > 0 ? "Review available now" : reviewTimingLabel(trainingSummary.nextReviewAt),
     trainingSummary,
   };
   const currentLineProps = {
@@ -1368,6 +1474,7 @@ export default function App() {
     isDone,
     isQuizTurn,
     isReviewing,
+    isSessionReviewComplete,
     lesson,
     lessonStep,
     moves,
@@ -1378,6 +1485,9 @@ export default function App() {
     selectedOpening,
     selectedOpeningId,
     selectedVariation,
+    sessionReviewActive,
+    sessionReviewCount: sessionReviewQueue.length,
+    sessionSummary,
     showAnswer,
     shownFen,
     treeBranchCount: currentTreeNode?.children?.length || 0,
@@ -1385,7 +1495,7 @@ export default function App() {
     wrongAttemptsThisMove,
     formatTopMoveOption,
     moveNumberForIndex,
-    onAdvance: advance,
+    onAdvance: advanceAfterAnswer,
     onCancelExtensionMode: cancelExtensionMode,
     onClearReview: clearReview,
     onOpenLesson: openLesson,
@@ -1402,13 +1512,14 @@ export default function App() {
     onSetViewIndex: setViewIndex,
     onStartExtensionFromPlayableAlternative: startExtensionFromPlayableAlternative,
     onStartFreePlay: startFreePlay,
+    onStartSessionReview: startSessionReview,
     onStopFreePlay: stopFreePlay,
   };
   const boardProps = {
     chessboardOptions,
-    engineEval,
+    engineEval: displayedEngineEval,
     evalHeight,
-    evalStatus,
+    evalStatus: displayedEvalStatus,
     formatEval,
   };
   const mistakeReviewProps = { mistakes };

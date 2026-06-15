@@ -56,6 +56,7 @@ which moves the user must recall.
   extending a variation, even when they are outside Stockfish's displayed top three.
 - Free-play move history remains clickable for position review.
 - A playable alternate analysis must remain visible in mobile portrait layout.
+- Missed positions queue once and can be reviewed together after the current line.
 
 ## Variations And Storage
 
@@ -69,13 +70,12 @@ which moves the user must recall.
   `chess-line-memorizer-saved-variations`. Do not rename it without a migration.
 - Training memory uses `opening-lab-training-memory`.
 - Weak-spot memory is position-, expected-move-, opening-, and practice-side-aware.
+- Training records include streaks, lapses, recent outcomes, and next-review timing.
 
 ## Current Major Upgrade Opportunities
 
 - Continue reducing the size and responsibility of `App.jsx` without changing
   behavior.
-- Build a runtime move tree from the existing complete built-in and saved lines,
-  while continuing to store saved variations as complete lines.
 - Improve training memory and weak-spot review as the trainer gains more usage data.
 - Keep expanding practical opening coverage and variations.
 

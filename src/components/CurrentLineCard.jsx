@@ -21,6 +21,7 @@ export default function CurrentLineCard({
   isDone,
   isQuizTurn,
   isReviewing,
+  isSessionReviewComplete,
   lesson,
   lessonStep,
   moves,
@@ -31,6 +32,9 @@ export default function CurrentLineCard({
   selectedOpening,
   selectedOpeningId,
   selectedVariation,
+  sessionReviewActive,
+  sessionReviewCount,
+  sessionSummary,
   showAnswer,
   shownFen,
   treeBranchCount,
@@ -55,6 +59,7 @@ export default function CurrentLineCard({
   onSetViewIndex,
   onStartExtensionFromPlayableAlternative,
   onStartFreePlay,
+  onStartSessionReview,
   onStopFreePlay,
 }) {
   return (
@@ -75,6 +80,7 @@ export default function CurrentLineCard({
         <span className="pill">Playing {quizSide}</span>
         <span className="pill muted-pill">Move {Math.min(currentIndex + 1, moves.length || 1)} of {moves.length}</span>
         {treeBranchCount > 1 && <span className="pill muted-pill">Tree choices: {treeBranchCount}</span>}
+        {sessionReviewActive && <span className="pill muted-pill">Same-session review</span>}
         {isReviewing && <button className="small-button" onClick={onClearReview}>Return to current position</button>}
       </div>
 
@@ -236,11 +242,25 @@ export default function CurrentLineCard({
               <button onClick={onStopFreePlay}>Exit free play</button>
             </div>
           </div>
+        ) : isSessionReviewComplete ? (
+          <div className="success-box">
+            <strong>Same-session review complete.</strong>
+            <p>You recalled every position queued from this line.</p>
+            <SessionSummary summary={sessionSummary} />
+            <div className="button-row">
+              <button onClick={() => onResetQuiz(true)}>Start a new variation</button>
+            </div>
+          </div>
         ) : isDone ? (
           <div className="success-box">
             <strong>Line complete.</strong>
-            <p>Start free play to see how the position can continue.</p>
+            <SessionSummary summary={sessionSummary} />
             <div className="button-row">
+              {sessionReviewCount > 0 && (
+                <button onClick={onStartSessionReview}>
+                  Review {sessionReviewCount} missed position{sessionReviewCount === 1 ? "" : "s"}
+                </button>
+              )}
               <button onClick={onStartFreePlay}>Continue from here</button>
               <button onClick={() => onResetQuiz(true)}>New random variation</button>
             </div>
@@ -249,7 +269,7 @@ export default function CurrentLineCard({
           <div className="opponent-box"><p>Opponent to move. {opponentThinking ? "Thinking..." : "Playing move..."}</p></div>
         ) : (
           <div className="answer-box">
-            <p>Your move: <strong>Move {moveNumberForIndex(currentIndex)} for {currentSide}</strong></p>
+            <p>{sessionReviewActive ? "Recall this missed position:" : "Your move:"} <strong>Move {moveNumberForIndex(currentIndex)} for {currentSide}</strong></p>
             <p className="muted">Drag and drop the piece where it belongs. Click-to-move still works too.</p>
             <div className="hint-row">
               {wrongAttemptsThisMove > 0 && !showAnswer && <button type="button" onClick={onRevealAnswer}>Show answer</button>}
@@ -298,6 +318,19 @@ export default function CurrentLineCard({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function SessionSummary({ summary }) {
+  if (!summary?.positions) return <p>Complete another line to begin building a session summary.</p>;
+
+  return (
+    <div className="session-summary" aria-label="Session summary">
+      <span><strong>{summary.positions}</strong> positions</span>
+      <span><strong>{summary.firstTryAccuracy ?? "—"}{summary.firstTryAccuracy !== null ? "%" : ""}</strong> first try</span>
+      <span><strong>{summary.weakSpotsFound}</strong> weak found</span>
+      <span><strong>{summary.weakSpotsImproved}</strong> improved</span>
     </div>
   );
 }
