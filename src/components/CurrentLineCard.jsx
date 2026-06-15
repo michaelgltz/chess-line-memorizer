@@ -16,6 +16,8 @@ export default function CurrentLineCard({
   filteredExtensionTopMoves,
   freePlayMode,
   freePlayMoves,
+  freePlayTopMoves,
+  freePlayTopMoveStatus,
   freePlayViewIndex,
   historyItems,
   isDone,
@@ -190,20 +192,13 @@ export default function CurrentLineCard({
                 pawns of best
               </label>
             </div>
-            <div className="extension-top-moves">
-              <strong>Reference Stockfish options</strong>
-              {extensionTopMoveStatus === "loading" && <p>Analyzing accepted moves...</p>}
-              {extensionTopMoveStatus === "unavailable" && <p>No engine move list available yet.</p>}
-              {extensionTopMoveStatus === "ready" && (
-                <ol>
-                  {filteredExtensionTopMoves.map((entry) => (
-                    <li key={`${entry.multiPv}-${entry.bestMove}`}>
-                      <span>{formatTopMoveOption(shownFen, entry)}</span>
-                    </li>
-                  ))}
-                </ol>
-              )}
-            </div>
+            <EngineMoveList
+              fen={shownFen}
+              formatTopMoveOption={formatTopMoveOption}
+              moves={filteredExtensionTopMoves}
+              status={extensionTopMoveStatus}
+              title="Reference Stockfish options"
+            />
             <div className="ending-guidelines">
               <strong>When to end the variation</strong>
               <ul>
@@ -237,7 +232,14 @@ export default function CurrentLineCard({
         ) : freePlayMode ? (
           <div className="success-box">
             <strong>Free play mode.</strong>
-            <p>Keep playing legal moves from the final position. The eval bar will keep updating.</p>
+            <p>Keep playing legal moves from the final position. The eval bar and engine choices update after every move.</p>
+            <EngineMoveList
+              fen={shownFen}
+              formatTopMoveOption={formatTopMoveOption}
+              moves={freePlayTopMoves}
+              status={freePlayTopMoveStatus}
+              title="Top Stockfish moves"
+            />
             <div className="button-row">
               <button onClick={onStopFreePlay}>Exit free play</button>
             </div>
@@ -318,6 +320,25 @@ export default function CurrentLineCard({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function EngineMoveList({ fen, formatTopMoveOption, moves, status, title }) {
+  return (
+    <div className="extension-top-moves">
+      <strong>{title}</strong>
+      {status === "loading" && <p>Analyzing this position...</p>}
+      {status === "unavailable" && <p>No engine move list available yet.</p>}
+      {status === "ready" && (
+        <ol>
+          {moves.map((entry) => (
+            <li key={`${entry.multiPv}-${entry.bestMove}`}>
+              <span>{formatTopMoveOption(fen, entry)}</span>
+            </li>
+          ))}
+        </ol>
+      )}
     </div>
   );
 }

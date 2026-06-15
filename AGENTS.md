@@ -55,6 +55,7 @@ which moves the user must recall.
 - Off-book moves within the configured evaluation threshold can be accepted while
   extending a variation, even when they are outside Stockfish's displayed top three.
 - Free-play move history remains clickable for position review.
+- Free play shows the top three Stockfish moves for the current position.
 - A playable alternate analysis must remain visible in mobile portrait layout.
 - Missed positions queue once and can be reviewed together after the current line.
 

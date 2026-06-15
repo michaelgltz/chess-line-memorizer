@@ -118,6 +118,8 @@ export default function App() {
   const [freePlayMode, setFreePlayMode] = useState(false);
   const [freePlayFen, setFreePlayFen] = useState(null);
   const [freePlayMoves, setFreePlayMoves] = useState([]);
+  const [freePlayTopMoves, setFreePlayTopMoves] = useState([]);
+  const [freePlayTopMoveStatus, setFreePlayTopMoveStatus] = useState("idle");
   const [extensionMode, setExtensionMode] = useState(false);
   const [extensionFen, setExtensionFen] = useState(null);
   const [extensionBaseMoves, setExtensionBaseMoves] = useState([]);
@@ -318,6 +320,36 @@ export default function App() {
       clearTimeout(startTimer);
     };
   }, [extensionMode, extensionFen]);
+
+  useEffect(() => {
+    if (!freePlayMode || !freePlayFen) {
+      return;
+    }
+
+    let cancelled = false;
+    const startTimer = setTimeout(() => {
+      if (cancelled) return;
+      setFreePlayTopMoveStatus("loading");
+      setFreePlayTopMoves([]);
+
+      analyzeTopMovesWithTemporaryStockfish(freePlayFen, ENGINE_DEPTH, 3)
+        .then((topMoves) => {
+          if (cancelled) return;
+          setFreePlayTopMoves(topMoves || []);
+          setFreePlayTopMoveStatus(topMoves?.length ? "ready" : "unavailable");
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setFreePlayTopMoves([]);
+          setFreePlayTopMoveStatus("unavailable");
+        });
+    }, 0);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(startTimer);
+    };
+  }, [freePlayFen, freePlayMode]);
 
   useEffect(() => {
     if (!shownFen || !stockfishRef.current) return;
@@ -1023,6 +1055,8 @@ export default function App() {
     setFreePlayMode(true);
     setFreePlayFen(finalGame.fen());
     setFreePlayMoves([]);
+    setFreePlayTopMoves([]);
+    setFreePlayTopMoveStatus("loading");
     setFeedback({ type: "correct", text: "Free play started. Continue from the final position." });
     setShowAnswer(false);
     setSelectedSquare(null);
@@ -1036,6 +1070,8 @@ export default function App() {
     setFreePlayMode(false);
     setFreePlayFen(null);
     setFreePlayMoves([]);
+    setFreePlayTopMoves([]);
+    setFreePlayTopMoveStatus("idle");
     setFreePlayViewIndex(null);
     setExtensionMode(false);
     setExtensionFen(null);
@@ -1469,6 +1505,8 @@ export default function App() {
     filteredExtensionTopMoves,
     freePlayMode,
     freePlayMoves,
+    freePlayTopMoves,
+    freePlayTopMoveStatus,
     freePlayViewIndex,
     historyItems,
     isDone,
