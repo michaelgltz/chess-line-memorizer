@@ -11,6 +11,13 @@ The trainer is for learning an opening from either side. Do not describe opening
 as inherently "for White" or "for Black"; the selected practice side determines
 which moves the user must recall.
 
+## Start Here For New AI Sessions
+
+- Read this file first.
+- Then read `AI_CONTEXT.md` for the project map, data flows, common task
+  playbooks, gotchas, and current upgrade context.
+- Use `README.md` for the short human-facing overview and local commands.
+
 ## Product Direction
 
 - Keep the interface clean, stable, and focused on training rather than revealing

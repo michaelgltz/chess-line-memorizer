@@ -1,16 +1,41 @@
-# React + Vite
+# Opening Lab
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Opening Lab is a polished chess opening repertoire trainer built with Vite and
+React. Users practice complete opening lines, explore practical alternate moves
+with local Stockfish analysis, save variations, continue into free play, and
+review weak or due positions.
 
-Currently, two official plugins are available:
+## Start Here
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- New AI sessions: read `AGENTS.md`, then `AI_CONTEXT.md`.
+- Product and architecture overview: `AI_CONTEXT.md`.
+- Built-in openings: `src/data/openings.js`.
+- Main trainer behavior: `src/App.jsx`.
+- Runtime move tree and variation catalog: `src/lib/variations.js`.
+- Training memory: `src/lib/trainingMemory.js`.
+- Stockfish request handling: `src/lib/stockfishController.js`.
 
-## React Compiler
+## Local Development
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+npm install
+npm run dev
+```
 
-## Expanding the ESLint configuration
+## Verification
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+npm test
+npm run lint
+npm run build
+```
+
+For UI changes, also run the local app and visually inspect desktop and mobile
+portrait. Mobile portrait is a first-class layout for this project.
+
+## Notes
+
+- Saved variations and training memory use browser `localStorage`.
+- Stockfish runs locally from `public/stockfish/stockfish-18-lite-single.js`.
+- The app stores saved variations as complete PGN-style lines and builds a
+  runtime move tree from those lines during practice.
