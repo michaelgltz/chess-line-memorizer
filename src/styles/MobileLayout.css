@@ -36,6 +36,31 @@
   overflow: visible;
 }
 
+@media (max-width: 700px) {
+  .mobile-layout .board-card {
+    width: 100vw;
+    margin-inline: calc(50% - 50vw);
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .mobile-layout .board-with-eval {
+    gap: 8px;
+  }
+
+  .mobile-layout .eval-wrap {
+    box-sizing: border-box;
+    padding-inline: 12px;
+  }
+
+  .mobile-layout .board-shell {
+    max-width: none;
+  }
+}
+
 @media (orientation: landscape) and (max-height: 600px) {
   .mobile-layout .board-with-eval {
     width: min(100%, calc(100svh - 24px));

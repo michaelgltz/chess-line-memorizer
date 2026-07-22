@@ -14,10 +14,10 @@ export default function MobileLayout({
     <>
       <PracticePanel {...practicePanelProps} />
       <section className="mobile-layout">
+        <BoardWithEval {...boardProps} />
         <div className="mobile-current-line">
           <CurrentLineCard {...currentLineProps} />
         </div>
-        <BoardWithEval {...boardProps} />
         <MistakeReview {...mistakeReviewProps} />
       </section>
     </>
