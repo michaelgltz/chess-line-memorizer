@@ -5,7 +5,8 @@
 Opening Lab is a polished chess opening repertoire trainer built with Vite and React.
 Users practice complete opening lines, explore playable alternate moves with local
 Stockfish analysis, save and manage variations, continue into free play, and train
-weak or due positions.
+weak or due positions. It is also an installable Progressive Web App (PWA) for
+phone home screens.
 
 The trainer is for learning an opening from either side. Do not describe openings
 as inherently "for White" or "for Black"; the selected practice side determines
@@ -53,6 +54,13 @@ which moves the user must recall.
   `<Chessboard options={chessboardOptions} />`.
 - Stockfish runs locally as a Web Worker from
   `/public/stockfish/stockfish-18-lite-single.js`.
+- `src/main.jsx` registers the service worker in production builds only.
+- `public/manifest.webmanifest` defines the installed app name, colors, and
+  Android-compatible icons.
+- `public/service-worker.js` pre-caches the app shell and Stockfish files, then
+  caches successful same-origin requests for offline fallback.
+- `public/icons/` contains the `192px`, `512px`, and iOS `180px` home-screen
+  artwork. `index.html` supplies the iOS-specific PWA metadata.
 
 ## Important Behavior
 
@@ -69,6 +77,8 @@ which moves the user must recall.
 - Free play shows the top three Stockfish moves for the current position.
 - A playable alternate analysis must remain visible in mobile portrait layout.
 - Missed positions queue once and can be reviewed together after the current line.
+- The PWA requires HTTPS in deployment (localhost is the development exception).
+  It opens in standalone mode after the user adds it to their phone home screen.
 
 ## Variations And Storage
 
@@ -83,6 +93,8 @@ which moves the user must recall.
 - Training memory uses `opening-lab-training-memory`.
 - Weak-spot memory is position-, expected-move-, opening-, and practice-side-aware.
 - Training records include streaks, lapses, recent outcomes, and next-review timing.
+- PWA Cache Storage contains only app resources. It must not be used for saved
+  variations or training memory, which remain in localStorage.
 
 ## Current Major Upgrade Opportunities
 
@@ -99,6 +111,10 @@ which moves the user must recall.
 - When changing UI, inspect both desktop and mobile portrait layouts visually.
 - Keep desktop and mobile composition in their separate layout files; shared
   behavior and shared components should not be duplicated.
+- When changing PWA-delivered static assets, keep `public/service-worker.js`
+  `APP_SHELL` in sync so a first offline launch still has every required file.
+- Treat a deployment URL change as a new browser storage origin: users' saved
+  variations and training memory do not move between domains automatically.
 - After app changes, provide a short suggested git commit message.
 - Do not provide commit-message suggestions for general conversation or planning.
 
@@ -126,3 +142,7 @@ Then use the in-app Browser to inspect and screenshot at least:
 
 Check that the board remains square, text does not overlap, analysis is visible,
 and the desktop layout has not regressed.
+
+For PWA changes, also run a production preview with `npm run preview` after the
+build. Verify the manifest, service worker, and icon files are served, then use
+an HTTPS deployment to test Add to Home Screen in iPhone Safari.

@@ -13,6 +13,9 @@ due positions.
 The app is still intentionally simple: no backend, no database, and no account
 system. Built-in opening lines live in source, saved variations and training
 memory live in `localStorage`, and Stockfish runs locally as a browser worker.
+The production build is an installable PWA: a manifest, home-screen icons, and
+service worker let it launch standalone on a phone and work offline after its
+first successful visit.
 
 The most important maintenance reality: `src/App.jsx` still coordinates much of
 the trainer state and behavior. Prefer extracting focused logic over adding more
@@ -29,6 +32,8 @@ large behavior directly to `App.jsx`.
    request ownership, parsing, scoring, and mistake explanations.
 6. `src/components/DesktopLayout.jsx` and `src/components/MobileLayout.jsx` for
    layout composition. Keep desktop and mobile composition separate.
+7. `public/service-worker.js` and `public/manifest.webmanifest` for installed
+   app and offline behavior.
 
 ## Product Rules That Matter
 
@@ -75,6 +80,21 @@ large behavior directly to `App.jsx`.
     behavior between desktop and mobile layouts.
 - `src/styles/DesktopLayout.css` and `src/styles/MobileLayout.css`
   - Layout-specific CSS. Shared component CSS remains in `src/App.css`.
+- `src/main.jsx`
+  - Registers `/service-worker.js` only in a production build.
+- `index.html`
+  - Links the web manifest and provides Apple touch-icon and standalone app
+    metadata.
+- `public/manifest.webmanifest`
+  - Defines Opening Lab's installed name, theme colors, standalone display mode,
+    and Android-compatible icons.
+- `public/service-worker.js`
+  - Pre-caches the app shell, PWA icons, and local Stockfish worker/WASM files.
+  - Uses the network when available, caches successful same-origin requests, and
+    falls back to cache when offline.
+- `public/icons/`
+  - Contains `icon-192.png`, `icon-512.png`, and the iOS
+    `apple-touch-icon.png`.
 - `tests/`
   - Node test suite for variation trees, training memory, and Stockfish request
     cancellation.
@@ -116,6 +136,17 @@ large behavior directly to `App.jsx`.
    `App.jsx` uses `engineEvalFen` for this.
 5. Scores shown in the UI are always from White's perspective.
 
+### Installed App And Offline Use
+
+1. A production build registers `service-worker.js` after the page load event.
+   Development mode deliberately does not register it.
+2. On install, the worker caches the entry page, manifest, PWA icons, and local
+   Stockfish JavaScript/WASM so engine analysis remains available offline.
+3. Successful same-origin GET requests refresh the cache while online; cached
+   responses are used when a network request fails.
+4. The PWA must be deployed over HTTPS (except localhost). On iPhone, users add
+   it through Safari's Share menu, then launch it from the home-screen icon.
+
 ### Free Play
 
 1. Free play starts from the final trained position.
@@ -141,6 +172,10 @@ large behavior directly to `App.jsx`.
 - Training memory:
   - Key: `opening-lab-training-memory`
   - Position records are opening-, side-, FEN-, and expected-move-aware.
+- PWA resources:
+  - Cache Storage key: `opening-lab-v1`
+  - Contains application resources only; saved variations and training records
+    must remain in localStorage.
 
 ## Common Task Playbooks
 
@@ -186,6 +221,18 @@ large behavior directly to `App.jsx`.
 4. Verify the lines parse by running tests and trying at least one changed line in
    the UI.
 
+### PWA Change
+
+1. Keep install metadata in `index.html` and `public/manifest.webmanifest`
+   aligned with the Opening Lab name, colors, and icon paths.
+2. When an asset is essential to a first offline launch, include its relative URL
+   in `APP_SHELL` in `public/service-worker.js`.
+3. Keep `src/main.jsx` registration production-only so development remains free
+   of stale cached bundles.
+4. Run `npm run build`, then `npm run preview`, and confirm the manifest,
+   worker, icons, and Stockfish files are served from the production output.
+5. For a real install test, use an HTTPS deployment and Safari on an iPhone.
+
 ## Current Strengths
 
 - Runtime move tree exists and supports branching practice from full lines.
@@ -195,6 +242,8 @@ large behavior directly to `App.jsx`.
 - Stockfish request ownership is centralized and tested against stale results.
 - Free play shows top three engine moves for the current position.
 - Desktop and mobile layout composition are intentionally separate.
+- The trainer is installable from a phone home screen and keeps its app shell and
+  local Stockfish files available offline after the first visit.
 
 ## Likely Next Improvements
 
@@ -217,6 +266,12 @@ large behavior directly to `App.jsx`.
 - Do not treat Stockfish scores as side-to-move scores in the UI. Convert to
   White perspective before display.
 - Do not skip visual checks for mobile portrait after UI changes.
+- Do not expect PWA install or service worker behavior over plain HTTP in a real
+  deployment; it needs HTTPS.
+- Do not accidentally migrate user data by changing the deployed origin. Browser
+  localStorage and service-worker caches are origin-specific.
+- Do not register the service worker during `npm run dev`; stale development
+  assets make debugging unreliable.
 
 ## Verification Commands
 
@@ -234,3 +289,6 @@ npm run dev
 
 Then inspect the running app in desktop and mobile portrait. If board or analysis
 layout changed, inspect mobile landscape too.
+
+For PWA work, build first and use `npm run preview` to exercise the production
+worker. Verify manifest and icon responses as well as the normal trainer flow.
