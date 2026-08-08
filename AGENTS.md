@@ -14,6 +14,7 @@ phone home screens.
   append `Chess` to the brand name.
 - The category descriptor is `private chess opening trainer`.
 - The tagline is `Practice openings. Play beyond them.`
+- The canonical production URL is `https://recall64.vercel.app/`.
 - Shared runtime brand language belongs in `src/config/brand.js`.
 - The old names that remain inside legacy storage keys and cache cleanup are
   compatibility identifiers, not public brand language.

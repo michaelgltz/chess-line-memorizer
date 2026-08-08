@@ -8,6 +8,8 @@ with local Stockfish analysis, save variations, continue into free play, and
 review weak or due positions. It can also be installed as a phone home-screen
 app.
 
+**Live site:** [recall64.vercel.app](https://recall64.vercel.app/)
+
 ## Start Here
 
 - New AI sessions: read `AGENTS.md`, then `AI_CONTEXT.md`.

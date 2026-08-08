@@ -9,6 +9,7 @@ Recall64 is a Vite + React chess opening trainer. It lets users practice
 complete opening lines from either side, explore alternate moves with local
 Stockfish analysis, save variations, continue into free play, and review weak or
 due positions. Its tagline is "Practice openings. Play beyond them."
+The canonical production URL is `https://recall64.vercel.app/`.
 
 The app is still intentionally simple: no backend, no database, and no account
 system. Built-in opening lines live in source, saved variations and training
@@ -67,7 +68,8 @@ large behavior directly to `App.jsx`.
   - Combines built-in and saved lines, dedupes normalized duplicate lines, builds
     runtime move trees, and chooses branches.
 - `src/config/brand.js`
-  - Owns the Recall64 runtime name, descriptor, tagline, and export identifiers.
+  - Owns the Recall64 runtime name, canonical production URL, descriptor,
+    tagline, and export identifiers.
 - `src/lib/repertoireFiles.js`
   - Creates brand-independent repertoire exports and keeps legacy export files
     importable after the rebrand.
@@ -178,7 +180,7 @@ large behavior directly to `App.jsx`.
   - Legacy-compatible key: `opening-lab-training-memory`
   - Position records are opening-, side-, FEN-, and expected-move-aware.
 - PWA resources:
-  - Current Cache Storage key: `recall64-v2`
+  - Current Cache Storage key: `recall64-v3`
   - The service worker still recognizes the legacy `opening-lab-` prefix for cleanup.
   - Contains application resources only; saved variations and training records
     must remain in localStorage.

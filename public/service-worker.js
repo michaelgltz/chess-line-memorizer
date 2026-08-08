@@ -1,10 +1,11 @@
-const CACHE_NAME = 'recall64-v2'
+const CACHE_NAME = 'recall64-v3'
 const LEGACY_CACHE_PREFIXES = ['opening-lab-', 'recall64-']
 const APP_SHELL = [
   './',
   './index.html',
   './manifest.webmanifest',
   './favicon.svg',
+  './og-recall64.png',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/apple-touch-icon.png',
