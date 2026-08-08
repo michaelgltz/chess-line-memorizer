@@ -1,6 +1,7 @@
 import { makeGameAtMove, normalizeMove, sideForIndex } from "./chess.js";
 import { buildVariationEntries } from "./variations.js";
 
+// Legacy key retained so a product rename never hides a user's training history.
 export const TRAINING_MEMORY_STORAGE_KEY = "opening-lab-training-memory";
 
 export const PRACTICE_MODES = [

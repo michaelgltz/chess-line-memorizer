@@ -1,14 +1,14 @@
-# AI Context: Opening Lab
+# AI Context: Recall64
 
 This file is the fastest way for a new AI session to understand the project.
 Read this after `AGENTS.md` and before making changes.
 
 ## One-Screen Summary
 
-Opening Lab is a Vite + React chess opening trainer. It lets users practice
+Recall64 is a Vite + React chess opening trainer. It lets users practice
 complete opening lines from either side, explore alternate moves with local
 Stockfish analysis, save variations, continue into free play, and review weak or
-due positions.
+due positions. Its tagline is "Practice openings. Play beyond them."
 
 The app is still intentionally simple: no backend, no database, and no account
 system. Built-in opening lines live in source, saved variations and training
@@ -66,6 +66,11 @@ large behavior directly to `App.jsx`.
 - `src/lib/variations.js`
   - Combines built-in and saved lines, dedupes normalized duplicate lines, builds
     runtime move trees, and chooses branches.
+- `src/config/brand.js`
+  - Owns the Recall64 runtime name, descriptor, tagline, and export identifiers.
+- `src/lib/repertoireFiles.js`
+  - Creates brand-independent repertoire exports and keeps legacy export files
+    importable after the rebrand.
 - `src/lib/trainingMemory.js`
   - Tracks attempts, streaks, lapses, recent outcomes, due review timing, weak
     positions, and session review queues.
@@ -86,7 +91,7 @@ large behavior directly to `App.jsx`.
   - Links the web manifest and provides Apple touch-icon and standalone app
     metadata.
 - `public/manifest.webmanifest`
-  - Defines Opening Lab's installed name, theme colors, standalone display mode,
+  - Defines Recall64's installed name, theme colors, standalone display mode,
     and Android-compatible icons.
 - `public/service-worker.js`
   - Pre-caches the app shell, PWA icons, and local Stockfish worker/WASM files.
@@ -165,15 +170,16 @@ large behavior directly to `App.jsx`.
 ## Storage Keys
 
 - Saved variations:
-  - Key: `chess-line-memorizer-saved-variations`
+  - Legacy-compatible key: `chess-line-memorizer-saved-variations`
   - Do not rename without a migration.
   - Shape: object keyed by opening id, each value an array of saved variation
     records.
 - Training memory:
-  - Key: `opening-lab-training-memory`
+  - Legacy-compatible key: `opening-lab-training-memory`
   - Position records are opening-, side-, FEN-, and expected-move-aware.
 - PWA resources:
-  - Cache Storage key: `opening-lab-v1`
+  - Current Cache Storage key: `recall64-v2`
+  - The service worker still recognizes the legacy `opening-lab-` prefix for cleanup.
   - Contains application resources only; saved variations and training records
     must remain in localStorage.
 
@@ -224,7 +230,7 @@ large behavior directly to `App.jsx`.
 ### PWA Change
 
 1. Keep install metadata in `index.html` and `public/manifest.webmanifest`
-   aligned with the Opening Lab name, colors, and icon paths.
+   aligned with the Recall64 name, colors, and icon paths.
 2. When an asset is essential to a first offline launch, include its relative URL
    in `APP_SHELL` in `public/service-worker.js`.
 3. Keep `src/main.jsx` registration production-only so development remains free

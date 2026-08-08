@@ -1,4 +1,5 @@
-const CACHE_NAME = 'opening-lab-v1'
+const CACHE_NAME = 'recall64-v2'
+const LEGACY_CACHE_PREFIXES = ['opening-lab-', 'recall64-']
 const APP_SHELL = [
   './',
   './index.html',
@@ -21,7 +22,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
       .then((keys) => Promise.all(keys
-        .filter((key) => key.startsWith('opening-lab-') && key !== CACHE_NAME)
+        .filter((key) => LEGACY_CACHE_PREFIXES.some((prefix) => key.startsWith(prefix)) && key !== CACHE_NAME)
         .map((key) => caches.delete(key))))
       .then(() => self.clients.claim()),
   )

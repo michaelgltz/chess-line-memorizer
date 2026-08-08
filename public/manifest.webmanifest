@@ -1,7 +1,7 @@
 {
-  "name": "Opening Lab",
-  "short_name": "Opening Lab",
-  "description": "Practice chess opening lines and review the positions that need work.",
+  "name": "Recall64 — Chess Opening Trainer",
+  "short_name": "Recall64",
+  "description": "Practice practical chess opening lines from either side, review weak positions, and continue into free play.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

@@ -1,12 +1,22 @@
-# Opening Lab
+# Recall64
 
 ## Product
 
-Opening Lab is a polished chess opening repertoire trainer built with Vite and React.
+Recall64 is a polished, private chess opening trainer built with Vite and React.
 Users practice complete opening lines, explore playable alternate moves with local
 Stockfish analysis, save and manage variations, continue into free play, and train
 weak or due positions. It is also an installable Progressive Web App (PWA) for
 phone home screens.
+
+## Brand
+
+- The display name is `Recall64`. Do not write `The Recall64`, `Recall 64`, or
+  append `Chess` to the brand name.
+- The category descriptor is `private chess opening trainer`.
+- The tagline is `Practice openings. Play beyond them.`
+- Shared runtime brand language belongs in `src/config/brand.js`.
+- The old names that remain inside legacy storage keys and cache cleanup are
+  compatibility identifiers, not public brand language.
 
 The trainer is for learning an opening from either side. Do not describe openings
 as inherently "for White" or "for Black"; the selected practice side determines
@@ -88,9 +98,9 @@ which moves the user must recall.
   built-in and saved lines. Exact normalized duplicate lines must not receive extra
   practice weight.
 - Preserve the existing saved variation data format.
-- Saved variations currently use the legacy localStorage key
+- Saved variations use the legacy localStorage key
   `chess-line-memorizer-saved-variations`. Do not rename it without a migration.
-- Training memory uses `opening-lab-training-memory`.
+- Training memory uses the legacy localStorage key `opening-lab-training-memory`.
 - Weak-spot memory is position-, expected-move-, opening-, and practice-side-aware.
 - Training records include streaks, lapses, recent outcomes, and next-review timing.
 - PWA Cache Storage contains only app resources. It must not be used for saved

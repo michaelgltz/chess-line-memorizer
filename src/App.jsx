@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Chess } from "chess.js";
 import DesktopLayout from "./components/DesktopLayout.jsx";
 import MobileLayout from "./components/MobileLayout.jsx";
+import { BRAND } from "./config/brand.js";
 import { OPENINGS } from "./data/openings.js";
 import useMediaQuery from "./hooks/useMediaQuery.js";
 import {
@@ -59,6 +60,11 @@ import {
   summarizeTreeBranches,
   variationDedupeKey,
 } from "./lib/variations.js";
+import {
+  createRepertoireExport,
+  extractImportedVariations,
+  repertoireExportFilename,
+} from "./lib/repertoireFiles.js";
 import "./App.css";
 
 const OPPONENT_DELAY_MIN_MS = 250;
@@ -803,18 +809,13 @@ export default function App() {
   }
 
   function exportSavedVariations() {
-    const payload = {
-      app: "Opening Lab",
-      version: 1,
-      exportedAt: new Date().toISOString(),
-      savedVariations,
-    };
+    const payload = createRepertoireExport(savedVariations);
 
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `opening-lab-repertoire-${new Date().toISOString().slice(0, 10)}.json`;
+    link.download = repertoireExportFilename();
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -829,11 +830,7 @@ export default function App() {
     reader.onload = () => {
       try {
         const parsed = JSON.parse(String(reader.result || "{}"));
-        const imported = parsed.savedVariations || parsed;
-
-        if (!imported || typeof imported !== "object" || Array.isArray(imported)) {
-          throw new Error("Invalid repertoire file");
-        }
+        const imported = extractImportedVariations(parsed);
 
         setSavedVariations((prev) => {
           const merged = { ...prev };
@@ -851,7 +848,7 @@ export default function App() {
 
         setFeedback({ type: "correct", text: "Imported saved variations successfully." });
       } catch {
-        setFeedback({ type: "wrong", text: "Could not import that file. Make sure it is a Chess Line Memorizer JSON export." });
+        setFeedback({ type: "wrong", text: `Could not import that file. Make sure it is a ${BRAND.name} repertoire export.` });
       } finally {
         event.target.value = "";
       }
@@ -1480,7 +1477,7 @@ export default function App() {
   };
 
   const chessboardOptions = {
-    id: "line-memorizer-board",
+    id: `${BRAND.slug}-board`,
     position: shownFen,
     boardOrientation: quizSide === "White" ? "white" : "black",
     onPieceDrop: handlePieceDrop,
@@ -1620,15 +1617,15 @@ export default function App() {
 
   return (
     <main className="app">
-      <section className="hero">
-        <div className="brand-lockup" aria-label="The Opening Lab">
+      <header className="hero">
+        <div className="brand-lockup" aria-label={`${BRAND.name}, ${BRAND.category}`}>
           <img className="brand-mark" src="/favicon.svg" alt="" />
-          <h1>The Opening Lab</h1>
+          <h1>{BRAND.name}</h1>
         </div>
         <div>
-          <p>Practice opening lines, explore variations, and review mistakes on the board.</p>
+          <p>{BRAND.tagline}</p>
         </div>
-      </section>
+      </header>
       <ActiveLayout
         boardProps={boardProps}
         currentLineProps={currentLineProps}

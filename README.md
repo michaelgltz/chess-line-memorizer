@@ -1,6 +1,8 @@
-# Opening Lab
+# Recall64
 
-Opening Lab is a polished chess opening repertoire trainer built with Vite and
+**Practice openings. Play beyond them.**
+
+Recall64 is a polished, private chess opening trainer built with Vite and
 React. Users practice complete opening lines, explore practical alternate moves
 with local Stockfish analysis, save variations, continue into free play, and
 review weak or due positions. It can also be installed as a phone home-screen
@@ -15,6 +17,8 @@ app.
 - Runtime move tree and variation catalog: `src/lib/variations.js`.
 - Training memory: `src/lib/trainingMemory.js`.
 - Stockfish request handling: `src/lib/stockfishController.js`.
+- Brand language: `src/config/brand.js`.
+- Repertoire import/export compatibility: `src/lib/repertoireFiles.js`.
 
 ## Local Development
 
@@ -36,9 +40,9 @@ portrait. Mobile portrait is a first-class layout for this project.
 
 ## Use On Your Phone
 
-Opening Lab can be installed as an app from a secure (HTTPS) deployment. On an
+Recall64 can be installed as an app from a secure (HTTPS) deployment. On an
 iPhone, open the deployed site in Safari, tap Share, then choose **Add to Home
-Screen**. Launching it from the new Opening Lab icon opens it without Safari's
+Screen**. Launching it from the new Recall64 icon opens it without Safari's
 browser controls and keeps the trainer and local Stockfish files available after
 the first visit.
 

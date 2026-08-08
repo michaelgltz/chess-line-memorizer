@@ -1,5 +1,6 @@
 import { normalizeMove, parseMoves } from "./chess.js";
 
+// Legacy key retained so a product rename never hides a user's saved repertoire.
 export const SAVED_VARIATIONS_STORAGE_KEY = "chess-line-memorizer-saved-variations";
 
 export function buildVariationEntries(variations) {
