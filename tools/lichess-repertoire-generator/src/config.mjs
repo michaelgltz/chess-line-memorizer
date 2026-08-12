@@ -68,6 +68,7 @@ export function normalizeConfig(raw, configPath = "config.json") {
       since: raw.explorer?.since ? String(raw.explorer.since) : "",
       until: raw.explorer?.until ? String(raw.explorer.until) : "",
       tokenEnvironmentVariable: String(raw.explorer?.tokenEnvironmentVariable || "LICHESS_TOKEN"),
+      tokenKeychainService: String(raw.explorer?.tokenKeychainService || "com.recall64.lichess-explorer"),
       retries: Number(raw.explorer?.retries ?? 6),
       requestSpacingMs: Number(raw.explorer?.requestSpacingMs ?? 1200),
     },

@@ -17,6 +17,7 @@ test("config hash changes for chess policy but not browser presentation", () => 
 
   assert.equal(configHash(first), configHash(headed));
   assert.notEqual(configHash(first), configHash(deeper));
+  assert.equal(first.explorer.tokenKeychainService, "com.recall64.lichess-explorer");
 });
 
 test("rejects a seed beyond the requested repertoire horizon", () => {

@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { execFileSync } from "node:child_process";
 import { chromium } from "playwright-core";
 import { positionKey } from "./chess-utils.mjs";
 
@@ -26,6 +27,19 @@ function retryDelay(response, attempt) {
   return Math.min(attempt * 4_000, 30_000);
 }
 
+function readMacKeychainToken(service) {
+  if (process.platform !== "darwin" || !service) return "";
+  try {
+    return execFileSync(
+      "/usr/bin/security",
+      ["find-generic-password", "-s", service, "-w"],
+      { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }
+    ).trim();
+  } catch {
+    return "";
+  }
+}
+
 export class LichessBrowserProvider {
   constructor(config, state, checkpoint, logger = console, fetchImpl = fetch) {
     this.config = config;
@@ -40,11 +54,13 @@ export class LichessBrowserProvider {
   }
 
   async open() {
-    this.token = process.env[this.config.explorer.tokenEnvironmentVariable] || "";
+    this.token = process.env[this.config.explorer.tokenEnvironmentVariable]
+      || readMacKeychainToken(this.config.explorer.tokenKeychainService);
     if (!this.token) {
       throw new Error(
         `Lichess Opening Explorer requires authentication. Set ${this.config.explorer.tokenEnvironmentVariable} `
-        + "to a no-scope personal token: https://lichess.org/account/oauth/token"
+        + `or store a no-scope token in macOS Keychain service ${this.config.explorer.tokenKeychainService}: `
+        + "https://lichess.org/account/oauth/token"
       );
     }
   }

@@ -29,8 +29,13 @@ shell history:
 read -s "LICHESS_TOKEN?Paste the no-scope Lichess token: "; export LICHESS_TOKEN; echo
 ```
 
-The generator reads the token only from the environment. It never writes the
-token to a config, checkpoint, log, audit, or output file.
+The generator reads the token only from the environment or macOS Keychain. It
+never writes the token to a config, checkpoint, log, audit, or output file.
+
+On this Mac, Codex has already placed the no-scope token in the macOS Keychain
+service `com.recall64.lichess-explorer`. The generator checks that service
+automatically, so the `read`/`export` step above is only needed on another
+computer.
 
 ## Generate
 
