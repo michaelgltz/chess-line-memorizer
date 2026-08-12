@@ -1,0 +1,39 @@
+{
+  "name": "King's Indian Defense — Deep Lichess",
+  "slug": "kings-indian-defense-deep-lichess",
+  "repertoireSide": "black",
+  "maxFullmove": 8,
+  "seeds": [
+    {
+      "name": "King's Indian main move order",
+      "moves": ["d4", "Nf6", "c4", "g6"]
+    },
+    {
+      "name": "King's Indian with 2.Nf3",
+      "moves": ["d4", "Nf6", "Nf3", "g6"]
+    }
+  ],
+  "branching": {
+    "minMoveShare": 0.05,
+    "maxBranches": 3,
+    "targetCoverage": 0.8,
+    "minAbsoluteReach": 0.001
+  },
+  "explorer": {
+    "speeds": ["Blitz", "Rapid", "Classical", "Correspondence"],
+    "ratings": [1800, 2000, 2200, 2500],
+    "requestSpacingMs": 1200,
+    "retries": 6
+  },
+  "engine": {
+    "minDepth": 55,
+    "stabilityDepthSpan": 8,
+    "maxPositionSeconds": 1200,
+    "pollIntervalMs": 500
+  },
+  "browser": {
+    "headless": true
+  },
+  "runDirectory": "../.runs/kings-indian-defense-deep-lichess",
+  "outputDirectory": "../output/kings-indian-defense-deep-lichess"
+}

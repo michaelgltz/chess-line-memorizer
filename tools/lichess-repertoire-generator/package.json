@@ -1,0 +1,14 @@
+{
+  "name": "lichess-repertoire-generator",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "generate": "node src/cli.mjs",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "chess.js": "^1.4.0",
+    "playwright-core": "^1.62.1"
+  }
+}

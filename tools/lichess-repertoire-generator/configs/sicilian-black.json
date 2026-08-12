@@ -1,0 +1,35 @@
+{
+  "name": "Sicilian Defense — Deep Lichess",
+  "slug": "sicilian-defense-deep-lichess",
+  "repertoireSide": "black",
+  "maxFullmove": 7,
+  "seeds": [
+    {
+      "name": "Sicilian Defense",
+      "moves": ["e4", "c5"]
+    }
+  ],
+  "branching": {
+    "minMoveShare": 0.05,
+    "maxBranches": 3,
+    "targetCoverage": 0.8,
+    "minAbsoluteReach": 0.001
+  },
+  "explorer": {
+    "speeds": ["Blitz", "Rapid", "Classical", "Correspondence"],
+    "ratings": [1800, 2000, 2200, 2500],
+    "requestSpacingMs": 1200,
+    "retries": 6
+  },
+  "engine": {
+    "minDepth": 55,
+    "stabilityDepthSpan": 8,
+    "maxPositionSeconds": 1200,
+    "pollIntervalMs": 500
+  },
+  "browser": {
+    "headless": true
+  },
+  "runDirectory": "../.runs/sicilian-defense-deep-lichess",
+  "outputDirectory": "../output/sicilian-defense-deep-lichess"
+}

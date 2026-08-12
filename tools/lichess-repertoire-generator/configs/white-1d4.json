@@ -1,0 +1,35 @@
+{
+  "name": "White 1.d4 — Deep Lichess",
+  "slug": "white-1d4-deep-lichess",
+  "repertoireSide": "white",
+  "maxFullmove": 7,
+  "seeds": [
+    {
+      "name": "1.d4",
+      "moves": ["d4"]
+    }
+  ],
+  "branching": {
+    "minMoveShare": 0.05,
+    "maxBranches": 3,
+    "targetCoverage": 0.8,
+    "minAbsoluteReach": 0.001
+  },
+  "explorer": {
+    "speeds": ["Blitz", "Rapid", "Classical", "Correspondence"],
+    "ratings": [1800, 2000, 2200, 2500],
+    "requestSpacingMs": 1200,
+    "retries": 6
+  },
+  "engine": {
+    "minDepth": 55,
+    "stabilityDepthSpan": 8,
+    "maxPositionSeconds": 1200,
+    "pollIntervalMs": 500
+  },
+  "browser": {
+    "headless": true
+  },
+  "runDirectory": "../.runs/white-1d4-deep-lichess",
+  "outputDirectory": "../output/white-1d4-deep-lichess"
+}
