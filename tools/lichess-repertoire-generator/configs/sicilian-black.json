@@ -24,7 +24,7 @@
   "engine": {
     "minDepth": 55,
     "stabilityDepthSpan": 8,
-    "maxPositionSeconds": 1200,
+    "maxPositionSeconds": 7200,
     "pollIntervalMs": 500
   },
   "browser": {
